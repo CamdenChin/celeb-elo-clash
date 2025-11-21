@@ -14,71 +14,61 @@ const Admin = () => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    const file = files[0];
+    
+    // Check if it's a ZIP file
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File",
+        description: "Please upload a ZIP file containing celebrity images",
+      });
+      return;
+    }
+
     setUploading(true);
-    const uploadedCelebrities = [];
-    const errors = [];
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        // Generate a unique filename
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${i}.${fileExt}`;
-        const filePath = `${fileName}`;
+      // Create form data with the ZIP file
+      const formData = new FormData();
+      formData.append('file', file);
 
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('celebrity-images')
-          .upload(filePath, file);
+      toast({
+        title: "Processing ZIP file",
+        description: "Unpacking and uploading images to the backend...",
+      });
 
-        if (uploadError) {
-          errors.push(`${file.name}: ${uploadError.message}`);
-          continue;
-        }
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('upload-celebrity-batch', {
+        body: formData,
+      });
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('celebrity-images')
-          .getPublicUrl(filePath);
-
-        // Extract name from filename (remove extension and numbers)
-        const displayName = file.name
-          .replace(/\.[^/.]+$/, '')
-          .replace(/[0-9]/g, '')
-          .replace(/_/g, ' ')
-          .trim() || `Celebrity ${i + 1}`;
-
-        // Insert into database
-        const { error: dbError } = await supabase
-          .from('celebrities')
-          .insert({
-            name: displayName,
-            image_path: publicUrl,
-          });
-
-        if (dbError) {
-          errors.push(`${file.name}: ${dbError.message}`);
-        } else {
-          uploadedCelebrities.push(displayName);
-        }
+      if (error) {
+        throw error;
       }
 
-      if (uploadedCelebrities.length > 0) {
+      const results = data as {
+        success: string[];
+        errors: string[];
+        total: number;
+      };
+
+      if (results.success.length > 0) {
         toast({
           title: "Upload Successful",
-          description: `Successfully uploaded ${uploadedCelebrities.length} celebrity image(s)`,
+          description: `Successfully uploaded ${results.success.length} celebrity image(s)`,
         });
       }
 
-      if (errors.length > 0) {
+      if (results.errors.length > 0) {
         toast({
           variant: "destructive",
           title: "Some uploads failed",
-          description: `${errors.length} error(s) occurred. Check console for details.`,
+          description: `${results.errors.length} error(s) occurred. Check console for details.`,
         });
-        console.error("Upload errors:", errors);
+        console.error("Upload errors:", results.errors);
       }
+
     } catch (error) {
       toast({
         variant: "destructive",
@@ -116,7 +106,7 @@ const Admin = () => {
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      PNG, JPG or WEBP (Multiple files supported)
+                      ZIP file containing celebrity images
                     </p>
                   </div>
                   <Input
@@ -124,8 +114,7 @@ const Admin = () => {
                     type="file"
                     className="hidden"
                     onChange={handleFileUpload}
-                    multiple
-                    accept="image/*"
+                    accept=".zip"
                     disabled={uploading}
                   />
                 </label>
@@ -141,7 +130,8 @@ const Admin = () => {
             <div className="space-y-2 p-4 bg-secondary/20 rounded-lg border border-border/50">
               <h3 className="font-semibold text-sm">Instructions:</h3>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Select multiple celebrity images to upload</li>
+                <li>Upload a ZIP file containing all celebrity images</li>
+                <li>Backend will unpack and process all images automatically</li>
                 <li>Images will be stored in Lovable Cloud storage</li>
                 <li>Celebrity names will be extracted from filenames</li>
                 <li>All celebrities start with an Elo rating of 1200</li>
