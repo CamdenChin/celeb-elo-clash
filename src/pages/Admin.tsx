@@ -5,9 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import JSZip from "jszip";
 
 const Admin = () => {
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentFile, setCurrentFile] = useState("");
   const { toast } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,46 +31,126 @@ const Admin = () => {
     }
 
     setUploading(true);
+    setProgress(0);
+    setCurrentFile("Loading ZIP file...");
+
+    const uploadedCelebrities: string[] = [];
+    const errors: string[] = [];
 
     try {
-      // Create form data with the ZIP file
-      const formData = new FormData();
-      formData.append('file', file);
-
-      toast({
-        title: "Processing ZIP file",
-        description: "Unpacking and uploading images to the backend...",
+      // Load and extract ZIP file in browser
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(file);
+      
+      // Filter image files
+      const imageFiles = Object.keys(zipContent.files).filter(filename => {
+        const file = zipContent.files[filename];
+        return !file.dir && 
+               !filename.startsWith('__MACOSX') && 
+               !filename.startsWith('.') &&
+               /\.(jpg|jpeg|png|webp|gif)$/i.test(filename);
       });
 
-      // Call the edge function
-      const { data, error } = await supabase.functions.invoke('upload-celebrity-batch', {
-        body: formData,
-      });
-
-      if (error) {
-        throw error;
+      const totalFiles = imageFiles.length;
+      
+      if (totalFiles === 0) {
+        throw new Error("No image files found in ZIP");
       }
 
-      const results = data as {
-        success: string[];
-        errors: string[];
-        total: number;
-      };
+      toast({
+        title: "Processing ZIP",
+        description: `Found ${totalFiles} images. Starting upload...`,
+      });
 
-      if (results.success.length > 0) {
+      // Process images in batches to avoid overwhelming the browser
+      const BATCH_SIZE = 5;
+      
+      for (let i = 0; i < imageFiles.length; i++) {
+        const filename = imageFiles[i];
+        const fileData = zipContent.files[filename];
+        
+        try {
+          setCurrentFile(`Processing ${filename}...`);
+          setProgress(Math.round((i / totalFiles) * 100));
+
+          // Extract file as blob
+          const blob = await fileData.async('blob');
+          
+          // Generate unique filename
+          const fileExt = filename.split('.').pop();
+          const timestamp = Date.now();
+          const uniqueFileName = `${timestamp}_${i}.${fileExt}`;
+
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('celebrity-images')
+            .upload(uniqueFileName, blob, {
+              contentType: blob.type || 'image/jpeg',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            errors.push(`${filename}: ${uploadError.message}`);
+            continue;
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('celebrity-images')
+            .getPublicUrl(uniqueFileName);
+
+          // Extract name from filename
+          const pathParts = filename.split('/');
+          const baseName = pathParts[pathParts.length - 1];
+          const displayName = baseName
+            .replace(/\.[^/.]+$/, '')
+            .replace(/[0-9]/g, '')
+            .replace(/_/g, ' ')
+            .replace(/-/g, ' ')
+            .trim() || `Celebrity ${i + 1}`;
+
+          // Insert into database
+          const { error: dbError } = await supabase
+            .from('celebrities')
+            .insert({
+              name: displayName,
+              image_path: publicUrl,
+            });
+
+          if (dbError) {
+            errors.push(`${filename}: ${dbError.message}`);
+          } else {
+            uploadedCelebrities.push(displayName);
+          }
+
+          // Small delay every batch to prevent rate limiting
+          if ((i + 1) % BATCH_SIZE === 0) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          errors.push(`${filename}: ${errorMessage}`);
+        }
+      }
+
+      setProgress(100);
+      setCurrentFile("Upload complete!");
+
+      if (uploadedCelebrities.length > 0) {
         toast({
           title: "Upload Successful",
-          description: `Successfully uploaded ${results.success.length} celebrity image(s)`,
+          description: `Successfully uploaded ${uploadedCelebrities.length} celebrity image(s)`,
         });
       }
 
-      if (results.errors.length > 0) {
+      if (errors.length > 0) {
         toast({
           variant: "destructive",
           title: "Some uploads failed",
-          description: `${results.errors.length} error(s) occurred. Check console for details.`,
+          description: `${errors.length} error(s) occurred. Check console for details.`,
         });
-        console.error("Upload errors:", results.errors);
+        console.error("Upload errors:", errors);
       }
 
     } catch (error) {
@@ -77,6 +161,8 @@ const Admin = () => {
       });
     } finally {
       setUploading(false);
+      setProgress(0);
+      setCurrentFile("");
       event.target.value = '';
     }
   };
@@ -121,9 +207,15 @@ const Admin = () => {
               </div>
 
               {uploading && (
-                <p className="text-sm text-center text-muted-foreground">
-                  Uploading images... Please wait.
-                </p>
+                <div className="space-y-3">
+                  <Progress value={progress} className="w-full" />
+                  <p className="text-sm text-center text-muted-foreground">
+                    {currentFile}
+                  </p>
+                  <p className="text-xs text-center text-muted-foreground">
+                    {progress}% complete
+                  </p>
+                </div>
               )}
             </div>
 
@@ -131,8 +223,8 @@ const Admin = () => {
               <h3 className="font-semibold text-sm">Instructions:</h3>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Upload a ZIP file containing all celebrity images</li>
-                <li>Backend will unpack and process all images automatically</li>
-                <li>Images will be stored in Lovable Cloud storage</li>
+                <li>ZIP will be unpacked in your browser (no server memory limits)</li>
+                <li>Images uploaded in batches with real-time progress tracking</li>
                 <li>Celebrity names will be extracted from filenames</li>
                 <li>All celebrities start with an Elo rating of 1200</li>
               </ul>
