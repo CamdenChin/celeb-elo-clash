@@ -22,6 +22,7 @@ const Rate = () => {
   const [voting, setVoting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [pairDisplayTime, setPairDisplayTime] = useState<number>(Date.now());
   const navigate = useNavigate();
 
   const fetchRandomPair = async (prefetch = false) => {
@@ -35,6 +36,7 @@ const Rate = () => {
           setNextPair([data.celebrities[0], data.celebrities[1]]);
         } else {
           setCelebrities([data.celebrities[0], data.celebrities[1]]);
+          setPairDisplayTime(Date.now());
           // Prefetch next pair immediately
           fetchRandomPair(true);
         }
@@ -72,6 +74,8 @@ const Rate = () => {
   const handleVote = async (winnerId: string, loserId: string) => {
     setVoting(true);
     
+    const clickTimeMs = Date.now() - pairDisplayTime;
+    
     try {
       // Check if user already voted on this exact matchup (only if authenticated)
       if (user) {
@@ -100,12 +104,13 @@ const Rate = () => {
 
       // Submit vote in background while showing next pair
       const votePromise = supabase.functions.invoke('submit-vote', {
-        body: { winnerId, loserId, userId: user?.id || null }
+        body: { winnerId, loserId, userId: user?.id || null, clickTimeMs }
       });
 
       // Immediately show next pair if cached
       if (nextPair) {
         setCelebrities(nextPair);
+        setPairDisplayTime(Date.now());
         setNextPair(null);
         setVoting(false);
         toast.success("Vote recorded!");
