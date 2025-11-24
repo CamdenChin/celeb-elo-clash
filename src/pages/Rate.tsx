@@ -414,11 +414,18 @@ const Rate = () => {
                 Home
               </Button>
             </Link>
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-7 w-7 text-primary" />
-              <h1 className="text-2xl font-serif font-semibold tracking-wide text-foreground">
-                CelebRate
-              </h1>
+            <div className="flex items-center gap-6">
+              <Link to="/bears">
+                <Button variant="ghost" size="sm">
+                  🐻 Bears
+                </Button>
+              </Link>
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-7 w-7 text-primary" />
+                <h1 className="text-2xl font-serif font-semibold tracking-wide text-foreground">
+                  CelebRate
+                </h1>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {user && (
