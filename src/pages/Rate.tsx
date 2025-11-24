@@ -215,6 +215,11 @@ const Rate = () => {
   }, [celebrities, voting, loading]);
 
   const handleVote = async (winnerId: string, loserId: string) => {
+    // Prevent duplicate submissions
+    if (voting) {
+      return;
+    }
+    
     setVoting(true);
     
     const clickTimeMs = Date.now() - pairDisplayTime;
