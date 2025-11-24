@@ -17,29 +17,35 @@ interface Celebrity {
 
 const Rate = () => {
   const [celebrities, setCelebrities] = useState<[Celebrity, Celebrity] | null>(null);
+  const [nextPair, setNextPair] = useState<[Celebrity, Celebrity] | null>(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
-  const fetchRandomPair = async () => {
-    setLoading(true);
+  const fetchRandomPair = async (prefetch = false) => {
     try {
       const { data, error } = await supabase.functions.invoke('get-random-pair');
       
       if (error) throw error;
       
       if (data?.celebrities && data.celebrities.length === 2) {
-        setCelebrities([data.celebrities[0], data.celebrities[1]]);
-      } else {
+        if (prefetch) {
+          setNextPair([data.celebrities[0], data.celebrities[1]]);
+        } else {
+          setCelebrities([data.celebrities[0], data.celebrities[1]]);
+          // Prefetch next pair immediately
+          fetchRandomPair(true);
+        }
+      } else if (!prefetch) {
         toast.error("Not enough celebrities in the database");
       }
     } catch (error) {
-      console.error('Error fetching pair:', error);
-      toast.error("Failed to load celebrities");
-    } finally {
-      setLoading(false);
+      if (!prefetch) {
+        console.error('Error fetching pair:', error);
+        toast.error("Failed to load celebrities");
+      }
     }
   };
 
@@ -64,6 +70,7 @@ const Rate = () => {
       } else {
         navigate("/auth");
       }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -90,19 +97,42 @@ const Rate = () => {
 
       if (existingVote) {
         toast.info("You've already voted on this matchup. Loading a new pair...");
-        await fetchRandomPair();
+        // Use cached pair or fetch new one
+        if (nextPair) {
+          setCelebrities(nextPair);
+          setNextPair(null);
+          fetchRandomPair(true);
+        } else {
+          await fetchRandomPair();
+        }
         setVoting(false);
         return;
       }
 
-      const { error } = await supabase.functions.invoke('submit-vote', {
+      // Submit vote in background while showing next pair
+      const votePromise = supabase.functions.invoke('submit-vote', {
         body: { winnerId, loserId, userId: user.id }
       });
 
+      // Immediately show next pair if cached
+      if (nextPair) {
+        setCelebrities(nextPair);
+        setNextPair(null);
+        setVoting(false);
+        toast.success("Vote recorded!");
+        // Prefetch next pair
+        fetchRandomPair(true);
+      }
+
+      const { error } = await votePromise;
+      
       if (error) throw error;
 
-      toast.success("Vote recorded!");
-      await fetchRandomPair();
+      // If we didn't have a cached pair, fetch one now
+      if (!nextPair) {
+        toast.success("Vote recorded!");
+        await fetchRandomPair();
+      }
     } catch (error) {
       console.error('Error submitting vote:', error);
       toast.error("Failed to submit vote");
