@@ -5,9 +5,10 @@ import { ArrowLeft, Sparkles, Heart, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
+import { SwipeableCard } from "@/components/SwipeableCard";
 import { User, Session } from "@supabase/supabase-js";
 
-interface Celebrity {
+export interface Celebrity {
   id: string;
   name: string;
   image_path: string;
@@ -247,39 +248,58 @@ const Rate = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
           ) : celebrities ? (
-            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-              {celebrities.map((celebrity) => (
-                <Card
-                  key={celebrity.id}
-                  className="group cursor-pointer overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 rounded-3xl"
-                  onClick={() => {
-                    if (!voting) {
-                      const other = celebrities.find(c => c.id !== celebrity.id)!;
-                      handleVote(celebrity.id, other.id);
-                    }
-                  }}
-                >
-                  <div className="aspect-[3/4] bg-muted relative overflow-hidden">
-                    <img
-                      src={celebrity.image_path}
-                      alt={celebrity.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            <>
+              {/* Mobile: Swipeable Cards */}
+              <div className="md:hidden space-y-6">
+                {celebrities.map((celebrity) => {
+                  const other = celebrities.find(c => c.id !== celebrity.id)!;
+                  return (
+                    <SwipeableCard
+                      key={celebrity.id}
+                      celebrity={celebrity}
+                      onSwipeRight={() => !voting && handleVote(celebrity.id, other.id)}
+                      onSwipeLeft={() => !voting && handleVote(other.id, celebrity.id)}
+                      disabled={voting}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-                      <p className="font-serif text-lg font-medium">Select</p>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: Side-by-side Grid */}
+              <div className="hidden md:grid md:grid-cols-2 gap-8 md:gap-12">
+                {celebrities.map((celebrity) => (
+                  <Card
+                    key={celebrity.id}
+                    className="group cursor-pointer overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 rounded-3xl"
+                    onClick={() => {
+                      if (!voting) {
+                        const other = celebrities.find(c => c.id !== celebrity.id)!;
+                        handleVote(celebrity.id, other.id);
+                      }
+                    }}
+                  >
+                    <div className="aspect-[3/4] bg-muted relative overflow-hidden">
+                      <img
+                        src={celebrity.image_path}
+                        alt={celebrity.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                        <p className="font-serif text-lg font-medium">Select</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-6 bg-card">
-                    <h3 className="text-xl font-serif font-semibold mb-3">{celebrity.name}</h3>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span className="font-light">Rating: {Math.round(celebrity.elo_rating)}</span>
-                      <span className="font-light">{celebrity.games_played} votes</span>
+                    <div className="p-6 bg-card">
+                      <h3 className="text-xl font-serif font-semibold mb-3">{celebrity.name}</h3>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span className="font-light">Rating: {Math.round(celebrity.elo_rating)}</span>
+                        <span className="font-light">{celebrity.games_played} votes</span>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No celebrities available</p>
