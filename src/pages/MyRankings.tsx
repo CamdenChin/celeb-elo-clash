@@ -44,10 +44,13 @@ const MyRankings = () => {
 
   const fetchMyVotes = async (userId: string) => {
     try {
-      // Get all matchups where this user voted
+      // Get all matchups with celebrity data in one query
       const { data: matchups, error: matchupsError } = await supabase
         .from('matchups')
-        .select('winner_id')
+        .select(`
+          winner_id,
+          celebrities!matchups_winner_id_fkey(id, name, image_path, elo_rating)
+        `)
         .eq('user_id', userId);
 
       if (matchupsError) throw matchupsError;
@@ -57,28 +60,28 @@ const MyRankings = () => {
         return;
       }
 
-      // Count votes per celebrity
-      const voteCounts = matchups.reduce((acc, matchup) => {
-        acc[matchup.winner_id] = (acc[matchup.winner_id] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      // Count votes per celebrity and collect celebrity data
+      const voteMap = new Map<string, { count: number; celeb: any }>();
+      
+      matchups.forEach((matchup: any) => {
+        const celeb = matchup.celebrities;
+        if (celeb) {
+          const existing = voteMap.get(celeb.id);
+          if (existing) {
+            existing.count++;
+          } else {
+            voteMap.set(celeb.id, { count: 1, celeb });
+          }
+        }
+      });
 
-      // Get celebrity details
-      const celebrityIds = Object.keys(voteCounts);
-      const { data: celebs, error: celebsError } = await supabase
-        .from('celebrities')
-        .select('id, name, image_path, elo_rating')
-        .in('id', celebrityIds);
-
-      if (celebsError) throw celebsError;
-
-      // Combine data and sort by vote count
-      const rankedCelebs = (celebs || [])
-        .map(celeb => ({
+      // Convert to array and sort by vote count
+      const rankedCelebs = Array.from(voteMap.values())
+        .map(({ count, celeb }) => ({
           id: celeb.id,
           name: celeb.name,
           image_path: celeb.image_path,
-          vote_count: voteCounts[celeb.id],
+          vote_count: count,
           current_elo: celeb.elo_rating
         }))
         .sort((a, b) => b.vote_count - a.vote_count);
