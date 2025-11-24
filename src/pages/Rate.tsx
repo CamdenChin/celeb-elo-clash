@@ -160,12 +160,6 @@ const Rate = () => {
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              <Link to="/leaderboard">
-                <Button variant="ghost" size="sm">
-                  <Trophy className="h-4 w-4 mr-2" />
-                  Rankings
-                </Button>
-              </Link>
               {user ? (
                 <Button variant="ghost" size="sm" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4" />
