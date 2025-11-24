@@ -62,85 +62,122 @@ const Admin = () => {
         description: `Found ${totalFiles} images. Starting upload...`,
       });
 
-      // Process images in batches to avoid overwhelming the browser
-      const BATCH_SIZE = 5;
+      // Check which celebrities already exist by fetching all existing image paths
+      setCurrentFile("Checking existing uploads...");
+      const { data: existingCelebs } = await supabase
+        .from('celebrities')
+        .select('image_path');
       
-      for (let i = 0; i < imageFiles.length; i++) {
-        const filename = imageFiles[i];
-        const fileData = zipContent.files[filename];
+      const existingPaths = new Set(existingCelebs?.map(c => c.image_path) || []);
+
+      // Process images in batches of 100
+      const BATCH_SIZE = 100;
+      let skippedCount = 0;
+      
+      for (let batchStart = 0; batchStart < imageFiles.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, imageFiles.length);
+        const batch = imageFiles.slice(batchStart, batchEnd);
         
-        try {
-          setCurrentFile(`Processing ${filename}...`);
-          setProgress(Math.round((i / totalFiles) * 100));
+        setCurrentFile(`Processing batch ${Math.floor(batchStart / BATCH_SIZE) + 1} of ${Math.ceil(imageFiles.length / BATCH_SIZE)}...`);
 
-          // Extract file as blob
-          const blob = await fileData.async('blob');
+        // Process batch in parallel
+        const batchPromises = batch.map(async (filename, batchIndex) => {
+          const globalIndex = batchStart + batchIndex;
           
-          // Generate unique filename
-          const fileExt = filename.split('.').pop();
-          const timestamp = Date.now();
-          const uniqueFileName = `${timestamp}_${i}.${fileExt}`;
+          try {
+            const fileData = zipContent.files[filename];
+            
+            // Extract file as blob
+            const blob = await fileData.async('blob');
+            
+            // Generate unique filename
+            const fileExt = filename.split('.').pop();
+            const timestamp = Date.now();
+            const uniqueFileName = `${timestamp}_${globalIndex}.${fileExt}`;
 
-          // Upload to storage
-          const { error: uploadError } = await supabase.storage
-            .from('celebrity-images')
-            .upload(uniqueFileName, blob, {
-              contentType: blob.type || 'image/jpeg',
-              upsert: false,
-            });
+            // Get public URL to check if it exists
+            const { data: { publicUrl } } = supabase.storage
+              .from('celebrity-images')
+              .getPublicUrl(uniqueFileName);
 
-          if (uploadError) {
-            errors.push(`${filename}: ${uploadError.message}`);
-            continue;
+            // Skip if already uploaded
+            if (existingPaths.has(publicUrl)) {
+              skippedCount++;
+              return { success: true, skipped: true };
+            }
+
+            // Upload to storage
+            const { error: uploadError } = await supabase.storage
+              .from('celebrity-images')
+              .upload(uniqueFileName, blob, {
+                contentType: blob.type || 'image/jpeg',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              return { success: false, error: `${filename}: ${uploadError.message}` };
+            }
+
+            // Extract name from filename
+            const pathParts = filename.split('/');
+            const baseName = pathParts[pathParts.length - 1];
+            const displayName = baseName
+              .replace(/\.[^/.]+$/, '')
+              .replace(/[0-9]/g, '')
+              .replace(/_/g, ' ')
+              .replace(/-/g, ' ')
+              .trim() || `Celebrity ${globalIndex + 1}`;
+
+            // Insert into database
+            const { error: dbError } = await supabase
+              .from('celebrities')
+              .insert({
+                name: displayName,
+                image_path: publicUrl,
+              });
+
+            if (dbError) {
+              return { success: false, error: `${filename}: ${dbError.message}` };
+            }
+
+            return { success: true, name: displayName };
+
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            return { success: false, error: `${filename}: ${errorMessage}` };
           }
+        });
 
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('celebrity-images')
-            .getPublicUrl(uniqueFileName);
-
-          // Extract name from filename
-          const pathParts = filename.split('/');
-          const baseName = pathParts[pathParts.length - 1];
-          const displayName = baseName
-            .replace(/\.[^/.]+$/, '')
-            .replace(/[0-9]/g, '')
-            .replace(/_/g, ' ')
-            .replace(/-/g, ' ')
-            .trim() || `Celebrity ${i + 1}`;
-
-          // Insert into database
-          const { error: dbError } = await supabase
-            .from('celebrities')
-            .insert({
-              name: displayName,
-              image_path: publicUrl,
-            });
-
-          if (dbError) {
-            errors.push(`${filename}: ${dbError.message}`);
-          } else {
-            uploadedCelebrities.push(displayName);
+        // Wait for batch to complete
+        const results = await Promise.all(batchPromises);
+        
+        // Collect results
+        results.forEach(result => {
+          if (result.success && result.name) {
+            uploadedCelebrities.push(result.name);
+          } else if (result.error) {
+            errors.push(result.error);
           }
+        });
 
-          // Small delay every batch to prevent rate limiting
-          if ((i + 1) % BATCH_SIZE === 0) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          errors.push(`${filename}: ${errorMessage}`);
-        }
+        // Update progress
+        setProgress(Math.round((batchEnd / totalFiles) * 100));
+        
+        // Small delay between batches
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
       setProgress(100);
       setCurrentFile("Upload complete!");
 
-      if (uploadedCelebrities.length > 0) {
+      const successMessage = skippedCount > 0 
+        ? `Uploaded ${uploadedCelebrities.length} new images. Skipped ${skippedCount} existing.`
+        : `Successfully uploaded ${uploadedCelebrities.length} celebrity image(s)`;
+
+      if (uploadedCelebrities.length > 0 || skippedCount > 0) {
         toast({
-          title: "Upload Successful",
-          description: `Successfully uploaded ${uploadedCelebrities.length} celebrity image(s)`,
+          title: "Upload Complete",
+          description: successMessage,
         });
       }
 
