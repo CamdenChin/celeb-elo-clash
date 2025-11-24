@@ -200,23 +200,6 @@ const Rate = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (voting || !celebrities || loading) return;
-      
-      if (e.key === '1') {
-        const other = celebrities.find(c => c.id !== celebrities[0].id)!;
-        handleVote(celebrities[0].id, other.id);
-      } else if (e.key === '2') {
-        const other = celebrities.find(c => c.id !== celebrities[1].id)!;
-        handleVote(celebrities[1].id, other.id);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [celebrities, voting, loading]);
-
   const handleVote = async (winnerId: string, loserId: string) => {
     // Prevent duplicate submissions
     if (voting) {
@@ -411,6 +394,21 @@ const Rate = () => {
       setVoting(false);
     }
   };
+
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (voting || !celebrities || loading) return;
+      
+      if (e.key === '1') {
+        handleVote(celebrities[0].id, celebrities[1].id);
+      } else if (e.key === '2') {
+        handleVote(celebrities[1].id, celebrities[0].id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [celebrities, voting, loading]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
