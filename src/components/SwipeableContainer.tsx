@@ -115,7 +115,7 @@ const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow,
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isMobile || !isDragging) return;
+    if (isMobile || !isPressing) return;
     handleDragMove(e.clientX, e.clientY);
   };
 
