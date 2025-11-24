@@ -5,14 +5,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const K_FACTOR = 32;
+const BASE_K_FACTOR = 32;
 
-function calculateEloChange(winnerRating: number, loserRating: number): { winnerNew: number; loserNew: number } {
+function calculateKFactor(clickTimeMs: number): number {
+  // Fast clicks (<1s) = 1.5x multiplier, slow clicks (>5s) = 0.5x multiplier
+  // Linear interpolation between 1s and 5s
+  if (clickTimeMs < 1000) {
+    return BASE_K_FACTOR * 1.5; // 48
+  } else if (clickTimeMs > 5000) {
+    return BASE_K_FACTOR * 0.5; // 16
+  } else {
+    // Interpolate: 1.5 at 1s down to 0.5 at 5s
+    const t = (clickTimeMs - 1000) / 4000; // 0 to 1
+    const multiplier = 1.5 - (t * 1.0); // 1.5 to 0.5
+    return BASE_K_FACTOR * multiplier;
+  }
+}
+
+function calculateEloChange(winnerRating: number, loserRating: number, clickTimeMs: number): { winnerNew: number; loserNew: number } {
+  const kFactor = calculateKFactor(clickTimeMs);
   const expectedWinner = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
   const expectedLoser = 1 / (1 + Math.pow(10, (winnerRating - loserRating) / 400));
   
-  const winnerNew = winnerRating + K_FACTOR * (1 - expectedWinner);
-  const loserNew = loserRating + K_FACTOR * (0 - expectedLoser);
+  const winnerNew = winnerRating + kFactor * (1 - expectedWinner);
+  const loserNew = loserRating + kFactor * (0 - expectedLoser);
   
   return { winnerNew, loserNew };
 }
@@ -23,7 +39,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { winnerId, loserId, userId } = await req.json();
+    const { winnerId, loserId, userId, clickTimeMs } = await req.json();
     
     if (!winnerId || !loserId) {
       return new Response(
@@ -82,10 +98,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Calculate new Elo ratings
+    // Calculate new Elo ratings with click speed factor
     const { winnerNew, loserNew } = calculateEloChange(
       Number(winner.elo_rating),
-      Number(loser.elo_rating)
+      Number(loser.elo_rating),
+      clickTimeMs || 3000 // Default to 3s if not provided
     );
 
     // Update winner
