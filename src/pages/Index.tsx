@@ -3,14 +3,66 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Trophy, Users, LogIn } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 const Index = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [userVotes, setUserVotes] = useState(0);
+  const [bearImage, setBearImage] = useState<string>("");
+  const [currentBearName, setCurrentBearName] = useState("Brown Bear");
+
+  const bears = [
+    { type: "brown", name: "Brown Bear" },
+    { type: "polar", name: "Polar Bear" },
+    { type: "panda", name: "Panda" },
+    { type: "koala", name: "Koala" },
+    { type: "teddy", name: "Teddy Bear" },
+    { type: "fancy", name: "Fancy Bear" },
+    { type: "grizzly", name: "Grizzly Bear" },
+    { type: "sun", name: "Sun Bear" },
+    { type: "spectacled", name: "Spectacled Bear" },
+    { type: "sloth", name: "Sloth Bear" },
+    { type: "black", name: "Black Bear" },
+    { type: "spirit", name: "Spirit Bear" },
+    { type: "red-panda", name: "Red Panda" },
+    { type: "gummy", name: "Gummy Bear" },
+    { type: "care", name: "Care Bear" },
+    { type: "cosmic", name: "Cosmic Bear" },
+  ];
+
+  const getBearThresholds = () => {
+    const thresholds = [10];
+    for (let i = 1; i < bears.length; i++) {
+      thresholds.push(thresholds[i - 1] + (i + 1) * 10);
+    }
+    return thresholds;
+  };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-    });
+
+      // Load user votes
+      if (session?.user) {
+        const { data: stats } = await supabase
+          .from('user_stats')
+          .select('total_votes')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        if (stats) {
+          setUserVotes(stats.total_votes);
+        }
+      } else {
+        const savedVotes = localStorage.getItem('userVotes');
+        if (savedVotes) {
+          setUserVotes(parseInt(savedVotes));
+        }
+      }
+    };
+
+    initUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -18,6 +70,60 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load bear image based on votes
+  useEffect(() => {
+    const loadBearImage = async () => {
+      const bearThresholds = getBearThresholds();
+      let currentBearIndex = 0;
+
+      for (let i = 0; i < bearThresholds.length; i++) {
+        if (userVotes >= bearThresholds[i]) {
+          currentBearIndex = i + 1;
+        } else {
+          break;
+        }
+      }
+
+      if (currentBearIndex >= bears.length) {
+        currentBearIndex = bears.length - 1;
+      }
+
+      const currentBear = bears[currentBearIndex];
+      setCurrentBearName(currentBear.name);
+
+      // Try to load from cache
+      const CACHE_KEY = 'bear_images_cache';
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        try {
+          const { images } = JSON.parse(cached);
+          if (images[currentBear.type]) {
+            setBearImage(images[currentBear.type]);
+            return;
+          }
+        } catch (e) {
+          console.error('Error loading cached bear:', e);
+        }
+      }
+
+      // Generate if not cached
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-bear', {
+          body: { bearType: currentBear.type }
+        });
+
+        if (error) throw error;
+        if (data?.imageUrl) {
+          setBearImage(data.imageUrl);
+        }
+      } catch (error) {
+        console.error('Error loading bear image:', error);
+      }
+    };
+
+    loadBearImage();
+  }, [userVotes]);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -33,8 +139,17 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-3">
               <Link to="/bears">
-                <Button variant="ghost" size="sm" className="font-sans">
-                  🐻 Bears
+                <Button variant="ghost" size="sm" className="font-sans flex items-center gap-1">
+                  {bearImage ? (
+                    <img 
+                      src={bearImage} 
+                      alt={currentBearName}
+                      className="w-5 h-5 object-contain rounded-full"
+                    />
+                  ) : (
+                    <span>🐻</span>
+                  )}
+                  Bears
                 </Button>
               </Link>
               {user && (

@@ -424,8 +424,17 @@ const Rate = () => {
             </Link>
             <div className="flex items-center gap-2 md:gap-6">
               <Link to="/bears" className="flex-shrink-0">
-                <Button variant="ghost" size="sm">
-                  🐻 <span className="hidden md:inline ml-1">Bears</span>
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  {bearImages[currentBear.type] ? (
+                    <img 
+                      src={bearImages[currentBear.type]} 
+                      alt={currentBear.name}
+                      className="w-4 h-4 md:w-5 md:h-5 object-contain rounded-full"
+                    />
+                  ) : (
+                    <span>🐻</span>
+                  )}
+                  <span className="hidden md:inline">Bears</span>
                 </Button>
               </Link>
               <div className="flex items-center gap-2 md:gap-3">
@@ -464,17 +473,14 @@ const Rate = () => {
               currentVotes={votesInCurrentTier}
               votesNeeded={votesNeededInTier}
               bearName={currentBear.name}
+              bearImage={bearImages[currentBear.type]}
             />
-            {bearImages[currentBear.type] ? (
+            {bearImages[currentBear.type] && (
               <img 
                 src={bearImages[currentBear.type]} 
                 alt={currentBear.name}
                 className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform hover:scale-110 cursor-pointer bg-background rounded-full"
               />
-            ) : (
-              <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-2xl md:text-3xl">
-                🐻
-              </div>
             )}
           </div>
         </div>
