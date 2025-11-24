@@ -54,64 +54,53 @@ const Rate = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
-      if (!session) {
-        navigate("/auth");
-      }
     });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
-      if (session) {
-        fetchRandomPair();
-      } else {
-        navigate("/auth");
-      }
       setLoading(false);
     });
 
+    // Load initial pair regardless of auth status
+    fetchRandomPair();
+
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const handleVote = async (winnerId: string, loserId: string) => {
-    if (!user) {
-      toast.error("Please sign in to vote");
-      navigate("/auth");
-      return;
-    }
-
     setVoting(true);
     
     try {
-      // Check if user already voted on this exact matchup
-      const { data: existingVote } = await supabase
-        .from('matchups')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('winner_id', winnerId)
-        .eq('loser_id', loserId)
-        .maybeSingle();
+      // Check if user already voted on this exact matchup (only if authenticated)
+      if (user) {
+        const { data: existingVote } = await supabase
+          .from('matchups')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('winner_id', winnerId)
+          .eq('loser_id', loserId)
+          .maybeSingle();
 
-      if (existingVote) {
-        toast.info("You've already voted on this matchup. Loading a new pair...");
-        // Use cached pair or fetch new one
-        if (nextPair) {
-          setCelebrities(nextPair);
-          setNextPair(null);
-          fetchRandomPair(true);
-        } else {
-          await fetchRandomPair();
+        if (existingVote) {
+          toast.info("You've already voted on this matchup. Loading a new pair...");
+          // Use cached pair or fetch new one
+          if (nextPair) {
+            setCelebrities(nextPair);
+            setNextPair(null);
+            fetchRandomPair(true);
+          } else {
+            await fetchRandomPair();
+          }
+          setVoting(false);
+          return;
         }
-        setVoting(false);
-        return;
       }
 
       // Submit vote in background while showing next pair
       const votePromise = supabase.functions.invoke('submit-vote', {
-        body: { winnerId, loserId, userId: user.id }
+        body: { winnerId, loserId, userId: user?.id || null }
       });
 
       // Immediately show next pair if cached
@@ -146,9 +135,6 @@ const Rate = () => {
     navigate("/auth");
   };
 
-  if (!user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -175,9 +161,17 @@ const Rate = () => {
                   Rankings
                 </Button>
               </Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+              {user ? (
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </div>
           </nav>
         </div>
