@@ -80,39 +80,6 @@ const Index = () => {
             </Link>
           </div>
 
-          {/* How it Works */}
-          <div className="pt-20 grid md:grid-cols-3 gap-6 text-left">
-            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-glow hover:-translate-y-2 transition-all duration-500 hover:border-primary/50 group animate-fade-in">
-              <div className="h-14 w-14 rounded-full bg-gradient-rose-gold flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                <Users className="h-7 w-7 text-white" />
-              </div>
-              <h3 className="text-xl font-serif font-semibold mb-3">Pick Your Winner</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Two faces. One choice. Make your vote count in this high-stakes beauty battle.
-              </p>
-            </div>
-
-            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-glow hover:-translate-y-2 transition-all duration-500 hover:border-primary/50 group animate-fade-in [animation-delay:150ms]">
-              <div className="h-14 w-14 rounded-full bg-gradient-primary flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
-                <Sparkles className="h-7 w-7 text-white" />
-              </div>
-              <h3 className="text-xl font-serif font-semibold mb-3">Ratings Shift</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Every vote changes the game. Watch as favorites rise and fall with brutal honesty.
-              </p>
-            </div>
-
-            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-glow hover:-translate-y-2 transition-all duration-500 hover:border-primary/50 group animate-fade-in [animation-delay:300ms]">
-              <div className="h-14 w-14 rounded-full bg-gradient-secondary flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                <Trophy className="h-7 w-7 text-foreground" />
-              </div>
-              <h3 className="text-xl font-serif font-semibold mb-3">Crown The Hottest</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Check the leaderboard to see who's winning the ultimate popularity contest.
-              </p>
-            </div>
-          </div>
-
           {/* Disclaimer */}
           <div className="pt-12 max-w-2xl mx-auto">
             <div className="bg-accent/30 border border-primary/20 rounded-2xl p-6 text-sm backdrop-blur-sm">
