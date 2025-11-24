@@ -22,25 +22,25 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
+      <header className="border-b border-border/30 bg-card/60 backdrop-blur-md">
+        <div className="container mx-auto px-4 py-5">
           <nav className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl font-serif font-semibold tracking-wide text-foreground">
                 CelebRate
               </h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Link to="/leaderboard">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="font-sans">
                   <Trophy className="h-4 w-4 mr-2" />
                   Leaderboard
                 </Button>
               </Link>
               {!user && (
                 <Link to="/auth">
-                  <Button variant="ghost" size="sm">
+                  <Button size="sm" className="font-sans">
                     <LogIn className="h-4 w-4 mr-2" />
                     Sign In
                   </Button>
@@ -52,36 +52,36 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <main className="container mx-auto px-4 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <div className="space-y-4">
-            <h2 className="text-4xl md:text-6xl font-bold tracking-tight">
-              Rate Celebrity{" "}
-              <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Attractiveness
+      <main className="container mx-auto px-4 py-20 md:py-32">
+        <div className="max-w-4xl mx-auto text-center space-y-10">
+          <div className="space-y-6">
+            <h2 className="text-5xl md:text-7xl font-serif font-light tracking-tight leading-tight">
+              Discover Beauty
+              <br />
+              <span className="font-semibold text-primary italic">
+                Reimagined
               </span>
             </h2>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Compare pairs of celebrities and help build an Elo-rated dataset. 
-              Each choice refines the rankings using a chess-style rating system.
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
+              Curate your favorites. Compare stunning portraits. Build an intelligent beauty dataset 
+              powered by your unique perspective.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Link to="/rate">
               <Button 
                 size="lg" 
-                className="text-lg px-8 py-6 shadow-glow hover:shadow-elegant transition-all"
+                className="text-base font-medium px-10 py-6 shadow-elegant hover:shadow-glow transition-all rounded-full"
               >
-                <Sparkles className="mr-2 h-5 w-5" />
-                Start Rating
+                Begin Your Journey
               </Button>
             </Link>
             <Link to="/leaderboard">
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="text-lg px-8 py-6"
+                className="text-base font-medium px-10 py-6 rounded-full border-2"
               >
                 <Trophy className="mr-2 h-5 w-5" />
                 View Rankings
@@ -90,46 +90,46 @@ const Index = () => {
           </div>
 
           {/* How it Works */}
-          <div className="pt-16 grid md:grid-cols-3 gap-8 text-left">
-            <div className="bg-card p-6 rounded-xl shadow-card border border-border/50">
-              <div className="h-12 w-12 rounded-lg bg-gradient-primary flex items-center justify-center mb-4">
-                <Users className="h-6 w-6 text-primary-foreground" />
+          <div className="pt-20 grid md:grid-cols-3 gap-6 text-left">
+            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-card transition-shadow">
+              <div className="h-14 w-14 rounded-full bg-gradient-rose-gold flex items-center justify-center mb-5">
+                <Users className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Compare Pairs</h3>
-              <p className="text-muted-foreground text-sm">
-                View two celebrities side-by-side and choose which one you find more attractive.
+              <h3 className="text-xl font-serif font-semibold mb-3">Compare</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Elegantly choose between two portraits, guided by your aesthetic intuition.
               </p>
             </div>
 
-            <div className="bg-card p-6 rounded-xl shadow-card border border-border/50">
-              <div className="h-12 w-12 rounded-lg bg-gradient-secondary flex items-center justify-center mb-4">
-                <Sparkles className="h-6 w-6 text-secondary-foreground" />
+            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-card transition-shadow">
+              <div className="h-14 w-14 rounded-full bg-gradient-primary flex items-center justify-center mb-5">
+                <Sparkles className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Elo Ratings Update</h3>
-              <p className="text-muted-foreground text-sm">
-                After each vote, both celebrities' Elo scores adjust based on the outcome.
+              <h3 className="text-xl font-serif font-semibold mb-3">Refine</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Watch as intelligent ratings evolve with each thoughtful selection you make.
               </p>
             </div>
 
-            <div className="bg-card p-6 rounded-xl shadow-card border border-border/50">
-              <div className="h-12 w-12 rounded-lg bg-gradient-primary flex items-center justify-center mb-4">
-                <Trophy className="h-6 w-6 text-primary-foreground" />
+            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-card transition-shadow">
+              <div className="h-14 w-14 rounded-full bg-gradient-secondary flex items-center justify-center mb-5">
+                <Trophy className="h-7 w-7 text-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">See Rankings</h3>
-              <p className="text-muted-foreground text-sm">
-                Check the leaderboard to see which celebrities rank highest in the community.
+              <h3 className="text-xl font-serif font-semibold mb-3">Discover</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Explore curated rankings that reflect collective beauty standards.
               </p>
             </div>
           </div>
 
           {/* Disclaimer */}
-          <div className="pt-8 max-w-2xl mx-auto">
-            <div className="bg-muted/50 border border-border/50 rounded-lg p-4 text-sm text-muted-foreground">
-              <p className="font-medium mb-1">⚠️ For Fun Only</p>
-              <p>
-                This app is purely for entertainment and dataset generation purposes. 
-                Attractiveness is subjective and rankings reflect community preferences, 
-                not objective truth. The dataset may contain biases.
+          <div className="pt-12 max-w-2xl mx-auto">
+            <div className="bg-accent/30 border border-primary/20 rounded-2xl p-6 text-sm">
+              <p className="font-serif font-semibold text-foreground mb-2">A Note on Beauty</p>
+              <p className="text-muted-foreground leading-relaxed">
+                This experience celebrates diverse perspectives on attractiveness. 
+                Rankings reflect collective taste, not absolute truth. Created for entertainment 
+                and research—beauty remains wonderfully subjective.
               </p>
             </div>
           </div>
@@ -137,10 +137,10 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 mt-16">
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-sm text-muted-foreground">
-            Built with CelebA dataset • Powered by Elo rating system
+      <footer className="border-t border-border/30 mt-20">
+        <div className="container mx-auto px-4 py-10">
+          <p className="text-center text-sm text-muted-foreground font-light">
+            Powered by intelligent rating systems • Built with care
           </p>
         </div>
       </footer>

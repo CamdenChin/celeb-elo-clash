@@ -153,18 +153,18 @@ const Rate = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
+      <header className="border-b border-border/30 bg-card/60 backdrop-blur-md">
+        <div className="container mx-auto px-4 py-5">
           <nav className="flex items-center justify-between">
             <Link to="/">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                Home
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl font-serif font-semibold tracking-wide text-foreground">
                 CelebRate
               </h1>
             </div>
@@ -172,12 +172,11 @@ const Rate = () => {
               <Link to="/leaderboard">
                 <Button variant="ghost" size="sm">
                   <Trophy className="h-4 w-4 mr-2" />
-                  Leaderboard
+                  Rankings
                 </Button>
               </Link>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </nav>
@@ -185,14 +184,14 @@ const Rate = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 md:py-12">
+      <main className="container mx-auto px-4 py-12 md:py-16">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">
-              Who's More Attractive?
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-serif font-light mb-4">
+              Choose Your Favorite
             </h2>
-            <p className="text-muted-foreground">
-              Click on your choice to vote
+            <p className="text-muted-foreground font-light text-lg">
+              Trust your instinct
             </p>
           </div>
 
@@ -201,11 +200,11 @@ const Rate = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
           ) : celebrities ? (
-            <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
               {celebrities.map((celebrity) => (
                 <Card
                   key={celebrity.id}
-                  className="group cursor-pointer overflow-hidden border-2 hover:border-primary hover:shadow-glow transition-all duration-300"
+                  className="group cursor-pointer overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 rounded-3xl"
                   onClick={() => {
                     if (!voting) {
                       const other = celebrities.find(c => c.id !== celebrity.id)!;
@@ -213,19 +212,22 @@ const Rate = () => {
                     }
                   }}
                 >
-                  <div className="aspect-square bg-muted relative overflow-hidden">
+                  <div className="aspect-[3/4] bg-muted relative overflow-hidden">
                     <img
                       src={celebrity.image_path}
                       alt={celebrity.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                      <p className="font-serif text-lg font-medium">Select</p>
+                    </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold mb-2">{celebrity.name}</h3>
+                  <div className="p-6 bg-card">
+                    <h3 className="text-xl font-serif font-semibold mb-3">{celebrity.name}</h3>
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>Elo: {Math.round(celebrity.elo_rating)}</span>
-                      <span>{celebrity.games_played} games</span>
+                      <span className="font-light">Rating: {Math.round(celebrity.elo_rating)}</span>
+                      <span className="font-light">{celebrity.games_played} votes</span>
                     </div>
                   </div>
                 </Card>
