@@ -41,52 +41,60 @@ Deno.serve(async (req) => {
       throw new Error('Failed to fetch first celebrity');
     }
 
-    // Find celebrities within ±10 Elo range of the first celebrity
-    const eloRange = 10;
-    const minElo = Number(celeb1Data.elo_rating) - eloRange;
-    const maxElo = Number(celeb1Data.elo_rating) + eloRange;
-
-    const { data: similarCelebs, error: similarError } = await supabase
+    // First try to find celebrities with exact same ELO
+    const { data: exactMatchCelebs } = await supabase
       .from('celebrities')
       .select('*')
-      .gte('elo_rating', minElo)
-      .lte('elo_rating', maxElo)
+      .eq('elo_rating', celeb1Data.elo_rating)
       .neq('id', celeb1Data.id);
 
-    if (similarError || !similarCelebs || similarCelebs.length === 0) {
-      // Fallback: if no similar Elo celebrities found, get any random celebrity
-      console.log('No similar Elo celebrities found, using fallback random selection');
-      let offset2 = Math.floor(Math.random() * count);
-      while (offset2 === offset1) {
-        offset2 = Math.floor(Math.random() * count);
-      }
+    if (exactMatchCelebs && exactMatchCelebs.length > 0) {
+      // Found exact ELO match
+      const randomIndex = Math.floor(Math.random() * exactMatchCelebs.length);
+      const celeb2Data = exactMatchCelebs[randomIndex];
       
-      const { data: celeb2Data } = await supabase
-        .from('celebrities')
-        .select('*')
-        .range(offset2, offset2)
-        .single();
-
-      if (!celeb2Data) {
-        throw new Error('Failed to fetch second celebrity');
-      }
-
-      console.log(`Selected pair (fallback): ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating})`);
+      console.log(`Selected pair (exact ELO match): ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating})`);
+      
       return new Response(
         JSON.stringify({ celebrities: [celeb1Data, celeb2Data] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Select random celebrity from similar Elo range
-    const randomIndex = Math.floor(Math.random() * similarCelebs.length);
-    const celeb2Data = similarCelebs[randomIndex];
+    // No exact match found, find the nearest ELO
+    console.log('No exact ELO match, finding nearest ELO...');
+    
+    const { data: allCelebs } = await supabase
+      .from('celebrities')
+      .select('*')
+      .neq('id', celeb1Data.id);
 
-    if (!celeb2Data) {
-      throw new Error('Failed to fetch second celebrity');
+    if (!allCelebs || allCelebs.length === 0) {
+      throw new Error('No other celebrities available');
     }
 
-    console.log(`Selected pair: ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating}), Elo diff: ${Math.abs(Number(celeb1Data.elo_rating) - Number(celeb2Data.elo_rating))}`);
+    // Find celebrity with smallest ELO difference
+    let nearestCeleb = allCelebs[0];
+    let smallestDiff = Math.abs(Number(allCelebs[0].elo_rating) - Number(celeb1Data.elo_rating));
+
+    for (const celeb of allCelebs) {
+      const diff = Math.abs(Number(celeb.elo_rating) - Number(celeb1Data.elo_rating));
+      if (diff < smallestDiff) {
+        smallestDiff = diff;
+        nearestCeleb = celeb;
+      }
+    }
+
+    // Get all celebrities with the same "nearest" ELO difference
+    const nearestEloCelebs = allCelebs.filter(celeb => 
+      Math.abs(Number(celeb.elo_rating) - Number(celeb1Data.elo_rating)) === smallestDiff
+    );
+
+    // Randomly select one from the nearest ELO group
+    const randomIndex = Math.floor(Math.random() * nearestEloCelebs.length);
+    const celeb2Data = nearestEloCelebs[randomIndex];
+
+    console.log(`Selected pair (nearest ELO): ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating}), Elo diff: ${smallestDiff}`);
 
     return new Response(
       JSON.stringify({ celebrities: [celeb1Data, celeb2Data] }),
