@@ -1,8 +1,24 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Trophy, Users } from "lucide-react";
+import { Sparkles, Trophy, Users, LogIn } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
@@ -22,6 +38,14 @@ const Index = () => {
                   Leaderboard
                 </Button>
               </Link>
+              {!user && (
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </div>
           </nav>
         </div>
