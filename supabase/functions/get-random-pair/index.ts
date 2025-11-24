@@ -29,6 +29,42 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 30% chance to do fully random pairing (mix of rated/unrated)
+    const useRandomPairing = Math.random() < 0.3;
+
+    if (useRandomPairing) {
+      // Fully random pairing - get two random celebrities
+      const offset1 = Math.floor(Math.random() * count);
+      let offset2 = Math.floor(Math.random() * count);
+      while (offset2 === offset1) {
+        offset2 = Math.floor(Math.random() * count);
+      }
+
+      const { data: celeb1Data } = await supabase
+        .from('celebrities')
+        .select('*')
+        .range(offset1, offset1)
+        .single();
+
+      const { data: celeb2Data } = await supabase
+        .from('celebrities')
+        .select('*')
+        .range(offset2, offset2)
+        .single();
+
+      if (!celeb1Data || !celeb2Data) {
+        throw new Error('Failed to fetch random celebrities');
+      }
+
+      console.log(`Selected pair (random): ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating})`);
+      
+      return new Response(
+        JSON.stringify({ celebrities: [celeb1Data, celeb2Data] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 70% chance to use ELO-based matching
     // Get first random celebrity
     const offset1 = Math.floor(Math.random() * count);
     const { data: celeb1Data } = await supabase
