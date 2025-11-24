@@ -75,6 +75,22 @@ const Rate = () => {
     setVoting(true);
     
     const clickTimeMs = Date.now() - pairDisplayTime;
+    const clickTimeSec = (clickTimeMs / 1000).toFixed(2);
+    
+    // Calculate multiplier for user feedback
+    let multiplier = 1.0;
+    let speedMessage = "";
+    if (clickTimeMs < 1000) {
+      multiplier = 1.5;
+      speedMessage = "⚡ Lightning Fast! 1.5x rating impact";
+    } else if (clickTimeMs > 5000) {
+      multiplier = 0.5;
+      speedMessage = "🐌 Slow decision. 0.5x rating impact";
+    } else {
+      const t = (clickTimeMs - 1000) / 4000;
+      multiplier = 1.5 - (t * 1.0);
+      speedMessage = `${multiplier.toFixed(1)}x rating impact`;
+    }
     
     try {
       // Check if user already voted on this exact matchup (only if authenticated)
@@ -113,7 +129,12 @@ const Rate = () => {
         setPairDisplayTime(Date.now());
         setNextPair(null);
         setVoting(false);
-        toast.success("Vote recorded!");
+        toast.success(
+          <div className="space-y-1">
+            <div>Vote recorded!</div>
+            <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
+          </div>
+        );
         // Prefetch next pair
         fetchRandomPair(true);
       }
@@ -124,7 +145,12 @@ const Rate = () => {
 
       // If we didn't have a cached pair, fetch one now
       if (!nextPair) {
-        toast.success("Vote recorded!");
+        toast.success(
+          <div className="space-y-1">
+            <div>Vote recorded!</div>
+            <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
+          </div>
+        );
         await fetchRandomPair();
       }
     } catch (error) {
@@ -187,12 +213,15 @@ const Rate = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12 md:py-16">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-serif font-light mb-4">
               Choose Your Favorite
             </h2>
-            <p className="text-muted-foreground font-light text-lg">
+            <p className="text-muted-foreground font-light text-lg mb-2">
               Trust your instinct
+            </p>
+            <p className="text-sm text-muted-foreground/60">
+              ⚡ Quick decisions have bigger impact on ratings
             </p>
           </div>
 
