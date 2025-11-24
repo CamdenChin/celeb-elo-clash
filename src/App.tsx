@@ -11,6 +11,7 @@ import MyRankings from "./pages/MyRankings";
 import CelebrityDetail from "./pages/CelebrityDetail";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
+import DatasetExport from "./pages/DatasetExport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/celebrity/:id" element={<CelebrityDetail />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/export" element={<DatasetExport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
