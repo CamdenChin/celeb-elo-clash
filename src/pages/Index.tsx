@@ -141,13 +141,20 @@ const Index = () => {
               <Link to="/bears">
                 <Button variant="ghost" size="sm" className="font-sans flex items-center gap-1">
                   {bearImage ? (
-                    <img 
-                      src={bearImage} 
-                      alt={currentBearName}
-                      className="w-5 h-5 object-contain rounded-full"
-                    />
+                    // Check if it's an emoji (short string, no URL prefix)
+                    bearImage.length <= 10 && !bearImage.startsWith('data:') && !bearImage.startsWith('http') ? (
+                      <span className="text-xl" role="img" aria-label={currentBearName}>
+                        {bearImage}
+                      </span>
+                    ) : (
+                      <img 
+                        src={bearImage} 
+                        alt={currentBearName}
+                        className="w-5 h-5 object-contain rounded-full"
+                      />
+                    )
                   ) : (
-                    <span>🐻</span>
+                    <span className="text-xl">🐻</span>
                   )}
                   Bears
                 </Button>
