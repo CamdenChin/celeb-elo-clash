@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface Celebrity {
@@ -81,6 +82,23 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled }: SwipeableC
       <div className="grid grid-cols-2 gap-3">
         {celebrities.map((celebrity, index) => (
           <div key={celebrity.id} className="relative">
+            {/* Swipe direction indicator */}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+              <div className="bg-background/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1 border border-border/50 shadow-lg">
+                {index === 0 ? (
+                  <>
+                    <ArrowLeft className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-medium">Swipe</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xs font-medium">Swipe</span>
+                    <ArrowRight className="h-4 w-4 text-primary" />
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Overlay for swipe feedback */}
             <div 
               className="absolute inset-0 bg-primary z-10 flex items-center justify-center pointer-events-none rounded-2xl"
