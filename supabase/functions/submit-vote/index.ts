@@ -32,32 +32,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'userId is required - user must be authenticated' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Check if user already voted on this exact matchup
-    const { data: existingVote } = await supabase
-      .from('matchups')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('winner_id', winnerId)
-      .eq('loser_id', loserId)
-      .maybeSingle();
+    // Check if user already voted on this exact matchup (only if authenticated)
+    if (userId) {
+      const { data: existingVote } = await supabase
+        .from('matchups')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('winner_id', winnerId)
+        .eq('loser_id', loserId)
+        .maybeSingle();
 
-    if (existingVote) {
-      return new Response(
-        JSON.stringify({ error: 'User has already voted on this matchup' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (existingVote) {
+        return new Response(
+          JSON.stringify({ error: 'User has already voted on this matchup' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Fetch current ratings
@@ -129,7 +124,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Record the matchup with user_id
+    // Record the matchup with optional user_id (null for anonymous)
     const { error: matchupError } = await supabase
       .from('matchups')
       .insert({
@@ -139,7 +134,7 @@ Deno.serve(async (req) => {
         loser_previous_elo: Number(loser.elo_rating),
         winner_new_elo: winnerNew,
         loser_new_elo: loserNew,
-        user_id: userId,
+        user_id: userId || null,
       });
 
     if (matchupError) {
