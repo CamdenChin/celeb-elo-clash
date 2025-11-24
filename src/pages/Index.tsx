@@ -32,6 +32,11 @@ const Index = () => {
               </h1>
             </div>
             <div className="flex items-center gap-3">
+              <Link to="/bears">
+                <Button variant="ghost" size="sm" className="font-sans">
+                  🐻 Bears
+                </Button>
+              </Link>
               {user && (
                 <Link to="/my-rankings">
                   <Button variant="ghost" size="sm" className="font-sans">
@@ -76,15 +81,6 @@ const Index = () => {
                 className="text-base font-semibold px-12 py-7 shadow-glow hover:shadow-elegant transition-all rounded-full hover:scale-105 animate-fade-in"
               >
                 Start Judging
-              </Button>
-            </Link>
-            <Link to="/bears">
-              <Button 
-                size="lg"
-                variant="outline"
-                className="text-base font-semibold px-12 py-7 transition-all rounded-full hover:scale-105 animate-fade-in"
-              >
-                🐻 Bear Collection
               </Button>
             </Link>
           </div>
