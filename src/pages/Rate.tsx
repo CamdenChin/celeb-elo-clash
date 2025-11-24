@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Heart, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
 import { SwipeableContainer } from "@/components/SwipeableContainer";
 import { User, Session } from "@supabase/supabase-js";
 
@@ -255,42 +254,18 @@ const Rate = () => {
                   celebrities={celebrities}
                   onVote={handleVote}
                   disabled={voting}
+                  isMobile={true}
                 />
               </div>
 
-              {/* Desktop: Side-by-side Grid */}
-              <div className="hidden md:grid md:grid-cols-2 gap-8 md:gap-12">
-                {celebrities.map((celebrity) => (
-                  <Card
-                    key={celebrity.id}
-                    className="group cursor-pointer overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 rounded-3xl"
-                    onClick={() => {
-                      if (!voting) {
-                        const other = celebrities.find(c => c.id !== celebrity.id)!;
-                        handleVote(celebrity.id, other.id);
-                      }
-                    }}
-                  >
-                    <div className="aspect-[3/4] bg-muted relative overflow-hidden">
-                      <img
-                        src={celebrity.image_path}
-                        alt={celebrity.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-                        <p className="font-serif text-lg font-medium">Select</p>
-                      </div>
-                    </div>
-                    <div className="p-6 bg-card">
-                      <h3 className="text-xl font-serif font-semibold mb-3">{celebrity.name}</h3>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span className="font-light">Rating: {Math.round(celebrity.elo_rating)}</span>
-                        <span className="font-light">{celebrity.games_played} votes</span>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+              {/* Desktop: Swipeable Side-by-side */}
+              <div className="hidden md:block">
+                <SwipeableContainer
+                  celebrities={celebrities}
+                  onVote={handleVote}
+                  disabled={voting}
+                  isMobile={false}
+                />
               </div>
             </>
           ) : (
