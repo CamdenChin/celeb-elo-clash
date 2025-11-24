@@ -30,19 +30,51 @@ const Bears = () => {
         setGlobalVotes(count);
       }
 
-      // Load cached bear images
+      // Load and generate bear images
       const CACHE_KEY = 'bear_images_cache';
+      const CACHE_VERSION = '1';
+      
+      // Try to load from localStorage
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         try {
-          const { images } = JSON.parse(cached);
-          setBearImages(images);
+          const { version, images } = JSON.parse(cached);
+          if (version === CACHE_VERSION) {
+            setBearImages(images);
+            setLoading(false);
+            return;
+          }
         } catch (e) {
           console.error('Error parsing cached bears:', e);
         }
       }
 
+      // Generate if not cached
+      const images: Record<string, string> = {};
+      
+      for (const bear of bears) {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-bear', {
+            body: { bearType: bear.type }
+          });
+          
+          if (error) throw error;
+          if (data?.imageUrl) {
+            images[bear.type] = data.imageUrl;
+          }
+        } catch (error) {
+          console.error(`Error generating ${bear.name}:`, error);
+        }
+      }
+      
+      setBearImages(images);
       setLoading(false);
+      
+      // Cache the results
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        version: CACHE_VERSION,
+        images
+      }));
     };
 
     loadData();
