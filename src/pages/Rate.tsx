@@ -5,7 +5,7 @@ import { ArrowLeft, Sparkles, Heart, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { SwipeableCard } from "@/components/SwipeableCard";
+import { SwipeableContainer } from "@/components/SwipeableContainer";
 import { User, Session } from "@supabase/supabase-js";
 
 export interface Celebrity {
@@ -249,20 +249,13 @@ const Rate = () => {
             </div>
           ) : celebrities ? (
             <>
-              {/* Mobile: Swipeable Cards */}
-              <div className="md:hidden space-y-6">
-                {celebrities.map((celebrity) => {
-                  const other = celebrities.find(c => c.id !== celebrity.id)!;
-                  return (
-                    <SwipeableCard
-                      key={celebrity.id}
-                      celebrity={celebrity}
-                      onSwipeRight={() => !voting && handleVote(celebrity.id, other.id)}
-                      onSwipeLeft={() => !voting && handleVote(other.id, celebrity.id)}
-                      disabled={voting}
-                    />
-                  );
-                })}
+              {/* Mobile: Swipeable Split Screen */}
+              <div className="md:hidden">
+                <SwipeableContainer
+                  celebrities={celebrities}
+                  onVote={handleVote}
+                  disabled={voting}
+                />
               </div>
 
               {/* Desktop: Side-by-side Grid */}
