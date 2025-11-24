@@ -1,19 +1,19 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const K_FACTOR = 32; // Elo K-factor for rating adjustments
+const K_FACTOR = 32;
 
 function calculateEloChange(winnerRating: number, loserRating: number): { winnerNew: number; loserNew: number } {
   const expectedWinner = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
   const expectedLoser = 1 / (1 + Math.pow(10, (winnerRating - loserRating) / 400));
-
+  
   const winnerNew = winnerRating + K_FACTOR * (1 - expectedWinner);
   const loserNew = loserRating + K_FACTOR * (0 - expectedLoser);
-
+  
   return { winnerNew, loserNew };
 }
 
@@ -23,8 +23,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { winnerId, loserId } = await req.json();
-
+    const { winnerId, loserId, userId } = await req.json();
+    
     if (!winnerId || !loserId) {
       return new Response(
         JSON.stringify({ error: 'winnerId and loserId are required' }),
@@ -32,42 +32,72 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    console.log(`Processing vote: Winner ${winnerId} vs Loser ${loserId}`);
-
-    // Get both celebrities
-    const { data: celebrities, error: fetchError } = await supabase
-      .from('celebrities')
-      .select('*')
-      .in('id', [winnerId, loserId]);
-
-    if (fetchError || !celebrities || celebrities.length !== 2) {
-      console.error('Error fetching celebrities:', fetchError);
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch celebrities' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'userId is required - user must be authenticated' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const winner = celebrities.find((c) => c.id === winnerId)!;
-    const loser = celebrities.find((c) => c.id === loserId)!;
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    const previousWinnerElo = parseFloat(winner.elo_rating);
-    const previousLoserElo = parseFloat(loser.elo_rating);
+    // Check if user already voted on this exact matchup
+    const { data: existingVote } = await supabase
+      .from('matchups')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('winner_id', winnerId)
+      .eq('loser_id', loserId)
+      .maybeSingle();
+
+    if (existingVote) {
+      return new Response(
+        JSON.stringify({ error: 'User has already voted on this matchup' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch current ratings
+    const { data: winner, error: winnerError } = await supabase
+      .from('celebrities')
+      .select('elo_rating, games_played, wins')
+      .eq('id', winnerId)
+      .single();
+
+    if (winnerError || !winner) {
+      return new Response(
+        JSON.stringify({ error: 'Winner not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: loser, error: loserError } = await supabase
+      .from('celebrities')
+      .select('elo_rating, games_played, losses')
+      .eq('id', loserId)
+      .single();
+
+    if (loserError || !loser) {
+      return new Response(
+        JSON.stringify({ error: 'Loser not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Calculate new Elo ratings
-    const { winnerNew, loserNew } = calculateEloChange(previousWinnerElo, previousLoserElo);
+    const { winnerNew, loserNew } = calculateEloChange(
+      Number(winner.elo_rating),
+      Number(loser.elo_rating)
+    );
 
-    console.log(`Elo changes: Winner ${previousWinnerElo} -> ${winnerNew}, Loser ${previousLoserElo} -> ${loserNew}`);
-
-    // Update both celebrities
+    // Update winner
     const { error: updateWinnerError } = await supabase
       .from('celebrities')
       .update({
-        elo_rating: winnerNew.toFixed(2),
+        elo_rating: winnerNew,
         games_played: winner.games_played + 1,
         wins: winner.wins + 1,
       })
@@ -75,13 +105,17 @@ Deno.serve(async (req) => {
 
     if (updateWinnerError) {
       console.error('Error updating winner:', updateWinnerError);
-      throw updateWinnerError;
+      return new Response(
+        JSON.stringify({ error: 'Failed to update winner' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    // Update loser
     const { error: updateLoserError } = await supabase
       .from('celebrities')
       .update({
-        elo_rating: loserNew.toFixed(2),
+        elo_rating: loserNew,
         games_played: loser.games_played + 1,
         losses: loser.losses + 1,
       })
@@ -89,37 +123,45 @@ Deno.serve(async (req) => {
 
     if (updateLoserError) {
       console.error('Error updating loser:', updateLoserError);
-      throw updateLoserError;
+      return new Response(
+        JSON.stringify({ error: 'Failed to update loser' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Record the matchup
+    // Record the matchup with user_id
     const { error: matchupError } = await supabase
       .from('matchups')
       .insert({
         winner_id: winnerId,
         loser_id: loserId,
-        winner_previous_elo: previousWinnerElo,
-        loser_previous_elo: previousLoserElo,
+        winner_previous_elo: Number(winner.elo_rating),
+        loser_previous_elo: Number(loser.elo_rating),
         winner_new_elo: winnerNew,
         loser_new_elo: loserNew,
+        user_id: userId,
       });
 
     if (matchupError) {
       console.error('Error recording matchup:', matchupError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to record matchup' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        winner: { id: winnerId, oldElo: previousWinnerElo, newElo: winnerNew },
-        loser: { id: loserId, oldElo: previousLoserElo, newElo: loserNew },
+        winnerNewRating: winnerNew,
+        loserNewRating: loserNew,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in submit-vote:', error);
+    console.error('Error in submit-vote function:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

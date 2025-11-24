@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Sparkles, Trophy } from "lucide-react";
+import { ArrowLeft, Sparkles, Trophy, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
+import { User, Session } from "@supabase/supabase-js";
 
 interface Celebrity {
   id: string;
@@ -18,6 +19,9 @@ const Rate = () => {
   const [celebrities, setCelebrities] = useState<[Celebrity, Celebrity] | null>(null);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const navigate = useNavigate();
 
   const fetchRandomPair = async () => {
     setLoading(true);
@@ -40,14 +44,59 @@ const Rate = () => {
   };
 
   useEffect(() => {
-    fetchRandomPair();
-  }, []);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session) {
+        fetchRandomPair();
+      } else {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleVote = async (winnerId: string, loserId: string) => {
+    if (!user) {
+      toast.error("Please sign in to vote");
+      navigate("/auth");
+      return;
+    }
+
     setVoting(true);
+    
     try {
+      // Check if user already voted on this exact matchup
+      const { data: existingVote } = await supabase
+        .from('matchups')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('winner_id', winnerId)
+        .eq('loser_id', loserId)
+        .maybeSingle();
+
+      if (existingVote) {
+        toast.info("You've already voted on this matchup. Loading a new pair...");
+        await fetchRandomPair();
+        setVoting(false);
+        return;
+      }
+
       const { error } = await supabase.functions.invoke('submit-vote', {
-        body: { winnerId, loserId }
+        body: { winnerId, loserId, userId: user.id }
       });
 
       if (error) throw error;
@@ -61,6 +110,15 @@ const Rate = () => {
       setVoting(false);
     }
   };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -80,12 +138,18 @@ const Rate = () => {
                 CelebRate
               </h1>
             </div>
-            <Link to="/leaderboard">
-              <Button variant="ghost" size="sm">
-                <Trophy className="h-4 w-4 mr-2" />
-                Leaderboard
+            <div className="flex items-center gap-2">
+              <Link to="/leaderboard">
+                <Button variant="ghost" size="sm">
+                  <Trophy className="h-4 w-4 mr-2" />
+                  Leaderboard
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
               </Button>
-            </Link>
+            </div>
           </nav>
         </div>
       </header>
