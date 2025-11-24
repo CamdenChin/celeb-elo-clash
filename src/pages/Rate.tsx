@@ -211,6 +211,12 @@ const Rate = () => {
     const clickTimeMs = Date.now() - pairDisplayTime;
     const clickTimeSec = (clickTimeMs / 1000).toFixed(2);
     
+    // Check if this is a controversial pick (voting for lower ELO)
+    const winner = celebrities?.find(c => c.id === winnerId);
+    const loser = celebrities?.find(c => c.id === loserId);
+    const isControversial = winner && loser && winner.elo_rating < loser.elo_rating;
+    const eloDifference = winner && loser ? Math.abs(winner.elo_rating - loser.elo_rating) : 0;
+    
     // Calculate multiplier for user feedback
     let multiplier = 1.0;
     let speedMessage = "";
@@ -314,6 +320,16 @@ const Rate = () => {
             </div>,
             { duration: 4000 }
           );
+        } else if (isControversial && eloDifference > 50) {
+          // Show controversial pick banner for significant upsets
+          toast.success(
+            <div className="space-y-1">
+              <div className="text-lg">🎭 Controversial Pick!</div>
+              <div className="text-sm">You went against the crowd (+{Math.round(eloDifference)} ELO upset)</div>
+              <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
+            </div>,
+            { duration: 4000 }
+          );
         } else {
           toast.success(
             <div className="space-y-1">
@@ -374,6 +390,15 @@ const Rate = () => {
               <div className="text-lg">🎉 New Bear Unlocked!</div>
               <div className="text-xl font-semibold">{newBear.name}</div>
               <div className="text-xs opacity-80">Your votes: {newUserVotes}</div>
+            </div>,
+            { duration: 4000 }
+          );
+        } else if (isControversial && eloDifference > 50) {
+          toast.success(
+            <div className="space-y-1">
+              <div className="text-lg">🎭 Controversial Pick!</div>
+              <div className="text-sm">You went against the crowd (+{Math.round(eloDifference)} ELO upset)</div>
+              <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
             </div>,
             { duration: 4000 }
           );
