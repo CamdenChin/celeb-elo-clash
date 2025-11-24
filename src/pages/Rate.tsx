@@ -56,15 +56,20 @@ const Rate = () => {
 
   for (let i = 0; i < bearThresholds.length; i++) {
     if (globalVotes >= bearThresholds[i]) {
-      currentBearIndex = i;
+      currentBearIndex = i + 1;
       votesNeededForNext = bearThresholds[i + 1] || bearThresholds[i];
     } else {
       break;
     }
   }
 
+  // Cap at last bear
+  if (currentBearIndex >= bears.length) {
+    currentBearIndex = bears.length - 1;
+  }
+
   const currentBear = bears[currentBearIndex];
-  const currentThreshold = bearThresholds[currentBearIndex] || 0;
+  const currentThreshold = bearThresholds[currentBearIndex - 1] || 0;
   const votesInCurrentTier = globalVotes - currentThreshold;
   const votesNeededInTier = votesNeededForNext - currentThreshold;
 
@@ -447,7 +452,7 @@ const Rate = () => {
                   <img 
                     src={bearImages[currentBear.type]} 
                     alt={currentBear.name}
-                    className="w-12 h-12 object-contain transition-transform hover:scale-110 cursor-pointer"
+                    className="w-12 h-12 object-contain transition-transform hover:scale-110 cursor-pointer bg-background rounded-full"
                   />
                 ) : (
                   <div className="w-12 h-12 flex items-center justify-center text-3xl">

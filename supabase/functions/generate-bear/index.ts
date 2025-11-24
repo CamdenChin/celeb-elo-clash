@@ -14,12 +14,12 @@ serve(async (req) => {
     const { bearType } = await req.json();
 
     const prompts = {
-      'brown': 'A cute, friendly brown bear mascot illustration, simple cartoon style, smiling face, soft round features, warm colors, isolated on transparent background',
-      'polar': 'A cute, friendly polar bear mascot illustration, simple cartoon style, white fluffy fur, smiling face, soft round features, cool colors, isolated on transparent background',
-      'panda': 'A cute, friendly panda bear mascot illustration, simple cartoon style, black and white fur, smiling face, soft round features, isolated on transparent background',
-      'koala': 'A cute, friendly koala bear mascot illustration, simple cartoon style, gray fluffy fur, big ears, smiling face, soft round features, isolated on transparent background',
-      'teddy': 'A cute, friendly teddy bear mascot illustration, simple cartoon style, plush toy appearance, button eyes, smiling face, soft round features, warm brown colors, isolated on transparent background',
-      'fancy': 'A cute, friendly fancy bear mascot illustration wearing a small crown or bow, simple cartoon style, elegant and sparkly, smiling face, soft round features, isolated on transparent background',
+      'brown': 'A cute, friendly brown bear mascot illustration, simple cartoon style, smiling face, soft round features, warm colors, solid white background',
+      'polar': 'A cute, friendly polar bear mascot illustration, simple cartoon style, white fluffy fur, smiling face, soft round features, cool colors, solid white background',
+      'panda': 'A cute, friendly panda bear mascot illustration, simple cartoon style, black and white fur, smiling face, soft round features, solid white background',
+      'koala': 'A cute, friendly koala bear mascot illustration, simple cartoon style, gray fluffy fur, big ears, smiling face, soft round features, solid white background',
+      'teddy': 'A cute, friendly teddy bear mascot illustration, simple cartoon style, plush toy appearance, button eyes, smiling face, soft round features, warm brown colors, solid white background',
+      'fancy': 'A cute, friendly fancy bear mascot illustration wearing a small crown or bow, simple cartoon style, elegant and sparkly, smiling face, soft round features, solid white background',
     };
 
     const prompt = prompts[bearType as keyof typeof prompts] || prompts.brown;
