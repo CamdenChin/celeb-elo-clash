@@ -10,18 +10,19 @@ interface Celebrity {
   games_played: number;
 }
 
-interface SwipeableContainerProps {
-  celebrities: [Celebrity, Celebrity];
-  onVote: (winnerId: string, loserId: string) => void;
+interface DraggableCardProps {
+  celebrity: Celebrity;
+  onSelect: () => void;
   disabled?: boolean;
   isMobile?: boolean;
+  showLeftArrow?: boolean;
+  showRightArrow?: boolean;
 }
 
-export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = true }: SwipeableContainerProps) => {
+const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow, showRightArrow }: DraggableCardProps) => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const startPos = useRef({ x: 0, y: 0 });
 
   const handleDragStart = (clientX: number, clientY: number) => {
@@ -44,29 +45,21 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
       return;
     }
 
-    const swipeThreshold = isMobile ? 100 : 150;
+    const swipeThreshold = isMobile ? 80 : 120;
     const absDeltaX = Math.abs(dragOffset.x);
+    const absDeltaY = Math.abs(dragOffset.y);
 
-    if (absDeltaX > swipeThreshold) {
+    // Only trigger if horizontal movement is dominant
+    if (absDeltaX > swipeThreshold && absDeltaX > absDeltaY) {
       // Trigger animation off screen
       setIsAnimating(true);
       const direction = dragOffset.x > 0 ? 1 : -1;
-      setDragOffset({ x: direction * 1000, y: dragOffset.y });
+      setDragOffset({ x: direction * 1000, y: dragOffset.y * 2 });
 
-      // Determine which celebrity won
-      if (direction > 0) {
-        // Swiped right - choose right celebrity
-        setTimeout(() => {
-          onVote(celebrities[1].id, celebrities[0].id);
-          resetDrag();
-        }, 300);
-      } else {
-        // Swiped left - choose left celebrity
-        setTimeout(() => {
-          onVote(celebrities[0].id, celebrities[1].id);
-          resetDrag();
-        }, 300);
-      }
+      setTimeout(() => {
+        onSelect();
+        resetDrag();
+      }, 300);
     } else {
       // Snap back
       setDragOffset({ x: 0, y: 0 });
@@ -98,11 +91,12 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
   // Mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
     if (isMobile) return;
+    e.preventDefault();
     handleDragStart(e.clientX, e.clientY);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isMobile) return;
+    if (isMobile || !isDragging) return;
     handleDragMove(e.clientX, e.clientY);
   };
 
@@ -112,121 +106,140 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
   };
 
   const getRotation = () => {
-    return dragOffset.x * 0.03; // Slight rotation based on drag
+    return dragOffset.x * 0.05;
   };
 
-  const getOverlayOpacity = (side: 'left' | 'right') => {
-    const maxOpacity = 0.8;
-    const opacity = Math.min(Math.abs(dragOffset.x) / 150, maxOpacity);
-    
-    if (side === 'left' && dragOffset.x < 0) return opacity;
-    if (side === 'right' && dragOffset.x > 0) return opacity;
-    return 0;
+  const getScale = () => {
+    const dragDistance = Math.abs(dragOffset.x);
+    return 1 + (dragDistance / 1000) * 0.1;
+  };
+
+  const getChooseOpacity = () => {
+    return Math.min(Math.abs(dragOffset.x) / 100, 1);
   };
 
   return (
-    <div
-      ref={containerRef}
-      className={`select-none relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleMouseDown}
+    <div 
+      className="relative"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      style={{
-        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) rotate(${getRotation()}deg)`,
-        transition: isDragging ? 'none' : 'transform 0.3s ease-out',
-      }}
     >
-      <div className={isMobile ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-8 md:gap-12"}>
-        {/* Overlay indicators for swipe direction */}
-        <div 
-          className={`absolute inset-0 bg-primary/20 z-10 flex items-center justify-center pointer-events-none ${isMobile ? 'rounded-2xl' : 'rounded-3xl'}`}
-          style={{ opacity: getOverlayOpacity('left') }}
-        >
-          <div className="bg-primary text-white px-6 py-3 rounded-full font-bold text-xl">
-            CHOOSE LEFT
-          </div>
-        </div>
-        <div 
-          className={`absolute inset-0 bg-primary/20 z-10 flex items-center justify-center pointer-events-none ${isMobile ? 'rounded-2xl' : 'rounded-3xl'}`}
-          style={{ opacity: getOverlayOpacity('right') }}
-        >
-          <div className="bg-primary text-white px-6 py-3 rounded-full font-bold text-xl">
-            CHOOSE RIGHT
-          </div>
-        </div>
-
-        {celebrities.map((celebrity, index) => (
-          <div key={celebrity.id} className="relative">
-            {/* Swipe direction indicator - only on mobile */}
-            {isMobile && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                <div className="bg-background/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1 border border-border/50 shadow-lg">
-                  {index === 0 ? (
-                    <>
-                      <ArrowLeft className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-medium">Swipe</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-xs font-medium">Swipe</span>
-                      <ArrowRight className="h-4 w-4 text-primary" />
-                    </>
-                  )}
-                </div>
-              </div>
+      {/* Swipe direction indicator - only on mobile */}
+      {isMobile && (showLeftArrow || showRightArrow) && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="bg-background/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1 border border-border/50 shadow-lg">
+            {showLeftArrow ? (
+              <>
+                <ArrowLeft className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium">Drag</span>
+              </>
+            ) : (
+              <>
+                <span className="text-xs font-medium">Drag</span>
+                <ArrowRight className="h-4 w-4 text-primary" />
+              </>
             )}
-
-            <Card
-              className={`overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 ${
-                isMobile ? 'rounded-2xl' : 'rounded-3xl'
-              } ${isDragging || isAnimating ? 'pointer-events-none' : 'cursor-pointer'}`}
-              onClick={() => {
-                if (!disabled && !isDragging && !isAnimating) {
-                  const other = celebrities.find(c => c.id !== celebrity.id)!;
-                  onVote(celebrity.id, other.id);
-                }
-              }}
-            >
-              <div className="aspect-[3/4] bg-muted relative overflow-hidden">
-                <img
-                  src={celebrity.image_path}
-                  alt={celebrity.name}
-                  className={`w-full h-full object-cover ${!isMobile && 'group-hover:scale-110 transition-transform duration-700'}`}
-                  draggable={false}
-                />
-                {!isMobile && (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-                      <p className="font-serif text-lg font-medium">Select</p>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className={isMobile ? 'p-3 bg-card' : 'p-6 bg-card'}>
-                <h3 className={`font-serif font-semibold ${isMobile ? 'text-sm mb-1 truncate' : 'text-xl mb-3'}`}>
-                  {celebrity.name}
-                </h3>
-                <div className={`flex items-center justify-between text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  <span className="font-light">Rating: {Math.round(celebrity.elo_rating)}</span>
-                  <span className="font-light">{celebrity.games_played} votes</span>
-                </div>
-              </div>
-            </Card>
           </div>
-        ))}
-      </div>
-      
-      {/* Swipe instruction - only on mobile */}
-      {isMobile && (
-        <div className="text-center mt-4 text-sm text-muted-foreground">
-          Tap or drag to choose
         </div>
       )}
+
+      {/* Choose indicator overlay */}
+      <div 
+        className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none ${isMobile ? 'rounded-2xl' : 'rounded-3xl'}`}
+        style={{ opacity: getChooseOpacity() }}
+      >
+        <div className="bg-primary text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg">
+          CHOOSE
+        </div>
+      </div>
+
+      <div
+        style={{
+          transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) rotate(${getRotation()}deg) scale(${getScale()})`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+        }}
+      >
+        <Card
+          className={`overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 ${
+            isMobile ? 'rounded-2xl' : 'rounded-3xl'
+          } ${isDragging || isAnimating ? 'cursor-grabbing shadow-2xl' : 'cursor-grab'}`}
+          onClick={() => {
+            if (!disabled && !isDragging && !isAnimating) {
+              onSelect();
+            }
+          }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="aspect-[3/4] bg-muted relative overflow-hidden">
+            <img
+              src={celebrity.image_path}
+              alt={celebrity.name}
+              className={`w-full h-full object-cover ${!isMobile && !isDragging && 'group-hover:scale-110 transition-transform duration-700'}`}
+              draggable={false}
+            />
+            {!isMobile && !isDragging && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                  <p className="font-serif text-lg font-medium">Select</p>
+                </div>
+              </>
+            )}
+          </div>
+          <div className={isMobile ? 'p-3 bg-card' : 'p-6 bg-card'}>
+            <h3 className={`font-serif font-semibold ${isMobile ? 'text-sm mb-1 truncate' : 'text-xl mb-3'}`}>
+              {celebrity.name}
+            </h3>
+            <div className={`flex items-center justify-between text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+              <span className="font-light">Rating: {Math.round(celebrity.elo_rating)}</span>
+              <span className="font-light">{celebrity.games_played} votes</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+interface SwipeableContainerProps {
+  celebrities: [Celebrity, Celebrity];
+  onVote: (winnerId: string, loserId: string) => void;
+  disabled?: boolean;
+  isMobile?: boolean;
+}
+
+export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = true }: SwipeableContainerProps) => {
+  return (
+    <div className="select-none">
+      <div className={isMobile ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-8 md:gap-12"}>
+        {celebrities.map((celebrity, index) => {
+          const other = celebrities.find(c => c.id !== celebrity.id)!;
+          return (
+            <DraggableCard
+              key={celebrity.id}
+              celebrity={celebrity}
+              onSelect={() => !disabled && onVote(celebrity.id, other.id)}
+              disabled={disabled}
+              isMobile={isMobile}
+              showLeftArrow={isMobile && index === 0}
+              showRightArrow={isMobile && index === 1}
+            />
+          );
+        })}
+      </div>
+      
+      {/* Instructions */}
+      <div className="text-center mt-4 text-sm text-muted-foreground">
+        {isMobile ? (
+          "Tap, drag or use keys 1/2"
+        ) : (
+          "Click, drag or use keys 1/2"
+        )}
+      </div>
     </div>
   );
 };
