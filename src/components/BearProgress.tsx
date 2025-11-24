@@ -11,14 +11,23 @@ export const BearProgress = ({ currentVotes, votesNeeded, bearName, bearImage }:
   const progress = (currentVotes / votesNeeded) * 100;
   const remaining = votesNeeded - currentVotes;
 
+  // Check if bearImage is an emoji (single character or emoji sequence)
+  const isEmoji = bearImage && bearImage.length <= 10 && !bearImage.startsWith('data:') && !bearImage.startsWith('http');
+
   return (
     <div className="flex items-center gap-2">
       {bearImage && (
-        <img 
-          src={bearImage} 
-          alt={bearName}
-          className="w-8 h-8 rounded-full object-cover"
-        />
+        isEmoji ? (
+          <span className="text-3xl" role="img" aria-label={bearName}>
+            {bearImage}
+          </span>
+        ) : (
+          <img 
+            src={bearImage} 
+            alt={bearName}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+        )
       )}
       <div className="w-40 space-y-1">
         <div className="flex justify-between text-xs text-muted-foreground">

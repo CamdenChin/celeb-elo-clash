@@ -105,8 +105,11 @@ const Index = () => {
         });
 
         if (error) throw error;
+        // Handle both AI-generated images and emoji fallback
         if (data?.imageUrl) {
           setBearImage(data.imageUrl);
+        } else if (data?.emoji) {
+          setBearImage(data.emoji);
         }
       } catch (error) {
         console.error('Error loading bear image:', error);

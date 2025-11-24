@@ -60,6 +60,37 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI gateway error:', response.status, errorText);
+      
+      // If payment required (no credits), return emoji fallback
+      if (response.status === 402) {
+        const emojiFallbacks: Record<string, string> = {
+          'brown': '🐻',
+          'polar': '🐻‍❄️',
+          'panda': '🐼',
+          'koala': '🐨',
+          'teddy': '🧸',
+          'fancy': '👑🐻',
+          'grizzly': '🐻',
+          'sun': '☀️🐻',
+          'spectacled': '👓🐻',
+          'sloth': '🦥',
+          'black': '🐻‍❄️',
+          'spirit': '✨🐻',
+          'red-panda': '🦊',
+          'gummy': '🍬🐻',
+          'care': '💝🐻',
+          'cosmic': '🌌🐻',
+        };
+        
+        const emoji = emojiFallbacks[bearType as keyof typeof emojiFallbacks] || '🐻';
+        console.log('Using emoji fallback:', emoji);
+        
+        return new Response(
+          JSON.stringify({ emoji }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       throw new Error(`AI gateway returned ${response.status}: ${errorText}`);
     }
 

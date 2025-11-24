@@ -114,8 +114,11 @@ const Rate = () => {
           });
           
           if (error) throw error;
+          // Handle both AI-generated images and emoji fallback
           if (data?.imageUrl) {
             images[bear.type] = data.imageUrl;
+          } else if (data?.emoji) {
+            images[bear.type] = data.emoji;
           }
         } catch (error) {
           console.error(`Error generating ${bear.name}:`, error);
