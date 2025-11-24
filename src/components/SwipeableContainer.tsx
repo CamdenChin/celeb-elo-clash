@@ -23,25 +23,42 @@ const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow,
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isPressing, setIsPressing] = useState(false);
   const startPos = useRef({ x: 0, y: 0 });
 
   const handleDragStart = (clientX: number, clientY: number) => {
     if (disabled || isAnimating) return;
-    setIsDragging(true);
+    setIsPressing(true);
     startPos.current = { x: clientX, y: clientY };
   };
 
   const handleDragMove = (clientX: number, clientY: number) => {
-    if (!isDragging || disabled) return;
+    if (!isPressing || disabled) return;
     
     const deltaX = clientX - startPos.current.x;
     const deltaY = clientY - startPos.current.y;
-    setDragOffset({ x: deltaX, y: deltaY });
+    
+    // Only enter drag mode after some movement (prevents accidental drags on clicks)
+    const dragThreshold = 5;
+    if (!isDragging && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
+      setIsDragging(true);
+    }
+    
+    if (isDragging) {
+      setDragOffset({ x: deltaX, y: deltaY });
+    }
   };
 
   const handleDragEnd = () => {
-    if (!isDragging || disabled) {
+    if (!isPressing || disabled) {
+      setIsPressing(false);
       setIsDragging(false);
+      return;
+    }
+
+    // If we never entered drag mode, this was just a click - don't do anything here
+    if (!isDragging) {
+      setIsPressing(false);
       return;
     }
 
@@ -64,12 +81,14 @@ const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow,
       // Snap back
       setDragOffset({ x: 0, y: 0 });
       setIsDragging(false);
+      setIsPressing(false);
     }
   };
 
   const resetDrag = () => {
     setDragOffset({ x: 0, y: 0 });
     setIsDragging(false);
+    setIsPressing(false);
     setIsAnimating(false);
   };
 
