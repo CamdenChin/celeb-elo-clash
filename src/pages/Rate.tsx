@@ -296,6 +296,8 @@ const Rate = () => {
             .upsert({ 
               user_id: user.id, 
               total_votes: newUserVotes 
+            }, {
+              onConflict: 'user_id'
             })
             .then(({ error }) => {
               if (error) console.error('Error saving stats:', error);
@@ -359,6 +361,8 @@ const Rate = () => {
             .upsert({ 
               user_id: user.id, 
               total_votes: newUserVotes 
+            }, {
+              onConflict: 'user_id'
             })
             .then(({ error }) => {
               if (error) console.error('Error saving stats:', error);
