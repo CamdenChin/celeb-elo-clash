@@ -32,12 +32,6 @@ const Index = () => {
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              <Link to="/leaderboard">
-                <Button variant="ghost" size="sm" className="font-sans">
-                  <Trophy className="h-4 w-4 mr-2" />
-                  Leaderboard
-                </Button>
-              </Link>
               {!user && (
                 <Link to="/auth">
                   <Button size="sm" className="font-sans">
@@ -75,16 +69,6 @@ const Index = () => {
                 className="text-base font-semibold px-12 py-7 shadow-glow hover:shadow-elegant transition-all rounded-full hover:scale-105 animate-fade-in"
               >
                 Start Judging
-              </Button>
-            </Link>
-            <Link to="/leaderboard">
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-base font-medium px-12 py-7 rounded-full border-2 hover:scale-105 animate-fade-in"
-              >
-                <Trophy className="mr-2 h-5 w-5" />
-                See The Rankings
               </Button>
             </Link>
           </div>
