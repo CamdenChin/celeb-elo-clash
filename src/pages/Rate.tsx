@@ -407,36 +407,36 @@ const Rate = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
+    <div className="min-h-screen bg-gradient-subtle overflow-x-hidden">
       {/* Header */}
       <header className="border-b border-border/30 bg-card/60 backdrop-blur-md">
         <div className="container mx-auto px-4 py-5">
-          <nav className="flex items-center justify-between">
-            <Link to="/">
+          <nav className="flex items-center justify-between gap-2">
+            <Link to="/" className="flex-shrink-0">
               <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Home
+                <ArrowLeft className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Home</span>
               </Button>
             </Link>
-            <div className="flex items-center gap-6">
-              <Link to="/bears">
+            <div className="flex items-center gap-2 md:gap-6">
+              <Link to="/bears" className="flex-shrink-0">
                 <Button variant="ghost" size="sm">
-                  🐻 Bears
+                  🐻 <span className="hidden md:inline ml-1">Bears</span>
                 </Button>
               </Link>
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-7 w-7 text-primary" />
-                <h1 className="text-2xl font-serif font-semibold tracking-wide text-foreground">
+              <div className="flex items-center gap-2 md:gap-3">
+                <Sparkles className="h-5 w-5 md:h-7 md:w-7 text-primary" />
+                <h1 className="text-lg md:text-2xl font-serif font-semibold tracking-wide text-foreground">
                   CelebRate
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
               {user && (
-                <Link to="/my-rankings">
+                <Link to="/my-rankings" className="hidden sm:block">
                   <Button variant="ghost" size="sm">
-                    <Heart className="h-4 w-4 mr-2" />
-                    My Favorites
+                    <Heart className="h-4 w-4 md:mr-2" />
+                    <span className="hidden md:inline">My Favorites</span>
                   </Button>
                 </Link>
               )}
@@ -451,28 +451,28 @@ const Rate = () => {
                   </Button>
                 </Link>
               )}
-              
-              {/* Bear Mascot with Progress */}
-              <div className="ml-2 group relative flex items-center gap-3">
-                <BearProgress 
-                  currentVotes={votesInCurrentTier}
-                  votesNeeded={votesNeededInTier}
-                  bearName={currentBear.name}
-                />
-                {bearImages[currentBear.type] ? (
-                  <img 
-                    src={bearImages[currentBear.type]} 
-                    alt={currentBear.name}
-                    className="w-12 h-12 object-contain transition-transform hover:scale-110 cursor-pointer bg-background rounded-full"
-                  />
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center text-3xl">
-                    🐻
-                  </div>
-                )}
-              </div>
             </div>
           </nav>
+          
+          {/* Bear Progress - Stacked below nav on mobile */}
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <BearProgress 
+              currentVotes={votesInCurrentTier}
+              votesNeeded={votesNeededInTier}
+              bearName={currentBear.name}
+            />
+            {bearImages[currentBear.type] ? (
+              <img 
+                src={bearImages[currentBear.type]} 
+                alt={currentBear.name}
+                className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform hover:scale-110 cursor-pointer bg-background rounded-full"
+              />
+            ) : (
+              <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-2xl md:text-3xl">
+                🐻
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
