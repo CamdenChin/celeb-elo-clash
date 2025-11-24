@@ -1,14 +1,25 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, Download } from "lucide-react";
+import { Upload, Loader2, Download, Trophy, Medal, Award } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JSZip from "jszip";
 import { User } from "@supabase/supabase-js";
+
+interface Celebrity {
+  id: string;
+  name: string;
+  image_path: string;
+  elo_rating: number;
+  games_played: number;
+  wins: number;
+  losses: number;
+}
 
 const Admin = () => {
   const [uploading, setUploading] = useState(false);
@@ -18,6 +29,8 @@ const Admin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [celebrities, setCelebrities] = useState<Celebrity[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -64,6 +77,41 @@ const Admin = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate, toast]);
+
+  const fetchLeaderboard = async () => {
+    setLoadingLeaderboard(true);
+    try {
+      const { data, error } = await supabase
+        .from('celebrities')
+        .select('*')
+        .order('elo_rating', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setCelebrities(data || []);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load leaderboard",
+      });
+    } finally {
+      setLoadingLeaderboard(false);
+    }
+  };
+
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Trophy className="h-5 w-5 text-yellow-500" />;
+    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
+    if (rank === 3) return <Award className="h-5 w-5 text-amber-600" />;
+    return null;
+  };
+
+  const getWinRate = (wins: number, gamesPlayed: number) => {
+    if (gamesPlayed === 0) return 0;
+    return ((wins / gamesPlayed) * 100).toFixed(1);
+  };
 
   const handleExportData = async () => {
     setExporting(true);
@@ -357,93 +405,184 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 py-12 px-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <Card className="border-border/50 shadow-elegant">
           <CardHeader>
             <CardTitle className="text-3xl font-bold">Admin Panel</CardTitle>
-            <CardDescription>Upload celebrity images and export training data</CardDescription>
+            <CardDescription>Manage celebrity data and view global rankings</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Export Training Data</h3>
-              <p className="text-sm text-muted-foreground">
-                Download celebrity data with ratings normalized to 1-10 scale for CNN training
-              </p>
-              <Button 
-                onClick={handleExportData} 
-                disabled={exporting}
-                className="w-full"
-              >
-                {exporting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Data (CSV & JSON)
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            <div className="border-t border-border/50 pt-6">
-              <h3 className="font-semibold text-lg mb-4">Upload Celebrity Images</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-center w-full">
-                  <label
-                    htmlFor="file-upload"
-                    className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/20 border-border/50 hover:bg-secondary/30 transition-colors"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      {uploading ? (
-                        <Loader2 className="w-12 h-12 mb-4 text-primary animate-spin" />
-                      ) : (
-                        <Upload className="w-12 h-12 mb-4 text-muted-foreground" />
-                      )}
-                      <p className="mb-2 text-sm text-foreground">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
+          <CardContent>
+            <Tabs defaultValue="upload" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="upload">Upload</TabsTrigger>
+                <TabsTrigger value="export">Export</TabsTrigger>
+                <TabsTrigger value="leaderboard" onClick={fetchLeaderboard}>Global Rankings</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="upload" className="space-y-4 mt-6">
+                <h3 className="font-semibold text-lg">Upload Celebrity Images</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center w-full">
+                    <label
+                      htmlFor="file-upload"
+                      className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/20 border-border/50 hover:bg-secondary/30 transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {uploading ? (
+                          <Loader2 className="w-12 h-12 mb-4 text-primary animate-spin" />
+                        ) : (
+                          <Upload className="w-12 h-12 mb-4 text-muted-foreground" />
+                        )}
+                        <p className="mb-2 text-sm text-foreground">
+                          <span className="font-semibold">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ZIP file containing celebrity images
+                        </p>
+                      </div>
+                      <Input
+                        id="file-upload"
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept=".zip"
+                        disabled={uploading}
+                      />
+                    </label>
+                  </div>
+
+                  {uploading && (
+                    <div className="space-y-3">
+                      <Progress value={progress} className="w-full" />
+                      <p className="text-sm text-center text-muted-foreground">
+                        {currentFile}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        ZIP file containing celebrity images
+                      <p className="text-xs text-center text-muted-foreground">
+                        {progress}% complete
                       </p>
                     </div>
-                    <Input
-                      id="file-upload"
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      accept=".zip"
-                      disabled={uploading}
-                    />
-                  </label>
+                  )}
                 </div>
 
-                {uploading && (
-                  <div className="space-y-3">
-                    <Progress value={progress} className="w-full" />
-                    <p className="text-sm text-center text-muted-foreground">
-                      {currentFile}
-                    </p>
-                    <p className="text-xs text-center text-muted-foreground">
-                      {progress}% complete
-                    </p>
-                  </div>
-                )}
-              </div>
+                <div className="space-y-2 p-4 bg-secondary/20 rounded-lg border border-border/50">
+                  <h3 className="font-semibold text-sm">Instructions:</h3>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Upload a ZIP file containing all celebrity images</li>
+                    <li>ZIP will be unpacked in your browser (no server memory limits)</li>
+                    <li>Images uploaded in batches with real-time progress tracking</li>
+                    <li>Celebrity names will be extracted from filenames</li>
+                    <li>All celebrities start with an Elo rating of 1200</li>
+                  </ul>
+                </div>
+              </TabsContent>
 
-              <div className="space-y-2 p-4 bg-secondary/20 rounded-lg border border-border/50 mt-4">
-                <h3 className="font-semibold text-sm">Instructions:</h3>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Upload a ZIP file containing all celebrity images</li>
-                  <li>ZIP will be unpacked in your browser (no server memory limits)</li>
-                  <li>Images uploaded in batches with real-time progress tracking</li>
-                  <li>Celebrity names will be extracted from filenames</li>
-                  <li>All celebrities start with an Elo rating of 1200</li>
-                </ul>
-              </div>
-            </div>
+              <TabsContent value="export" className="space-y-4 mt-6">
+                <h3 className="font-semibold text-lg">Export Training Data</h3>
+                <p className="text-sm text-muted-foreground">
+                  Download celebrity data with ratings normalized to 1-10 scale for CNN training
+                </p>
+                <Button 
+                  onClick={handleExportData} 
+                  disabled={exporting}
+                  className="w-full"
+                >
+                  {exporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Export Data (CSV & JSON)
+                    </>
+                  )}
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="leaderboard" className="mt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-lg">Global Leaderboard</h3>
+                    <Button onClick={fetchLeaderboard} variant="outline" size="sm" disabled={loadingLeaderboard}>
+                      {loadingLeaderboard ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+                    </Button>
+                  </div>
+
+                  {loadingLeaderboard ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : celebrities.length > 0 ? (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      {celebrities.map((celebrity, index) => (
+                        <Link key={celebrity.id} to={`/celebrity/${celebrity.id}`}>
+                          <Card className="overflow-hidden hover:shadow-lg transition-all cursor-pointer border border-border/50 hover:border-primary/50">
+                            <div className="flex items-center gap-4 p-4">
+                              {/* Rank */}
+                              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted font-bold">
+                                {getRankIcon(index + 1) || (index + 1)}
+                              </div>
+
+                              {/* Image */}
+                              <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                <img
+                                  src={celebrity.image_path}
+                                  alt={celebrity.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              {/* Name */}
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold truncate">{celebrity.name}</h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {celebrity.games_played} games
+                                </p>
+                              </div>
+
+                              {/* Stats */}
+                              <div className="hidden md:flex items-center gap-6 text-sm">
+                                <div className="text-center">
+                                  <div className="font-semibold text-primary">
+                                    {Math.round(celebrity.elo_rating)}
+                                  </div>
+                                  <div className="text-muted-foreground text-xs">Elo</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-xs">
+                                    {celebrity.wins}-{celebrity.losses}
+                                  </div>
+                                  <div className="text-muted-foreground text-xs">W-L</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-xs">
+                                    {getWinRate(celebrity.wins, celebrity.games_played)}%
+                                  </div>
+                                  <div className="text-muted-foreground text-xs">Win%</div>
+                                </div>
+                              </div>
+
+                              {/* Mobile Stats */}
+                              <div className="md:hidden text-right">
+                                <div className="font-semibold text-primary">
+                                  {Math.round(celebrity.elo_rating)}
+                                </div>
+                                <div className="text-muted-foreground text-xs">Elo</div>
+                              </div>
+                            </div>
+                          </Card>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">No celebrities in the database yet</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
