@@ -78,6 +78,15 @@ const Index = () => {
                 Start Judging
               </Button>
             </Link>
+            <Link to="/bears">
+              <Button 
+                size="lg"
+                variant="outline"
+                className="text-base font-semibold px-12 py-7 transition-all rounded-full hover:scale-105 animate-fade-in"
+              >
+                🐻 Bear Collection
+              </Button>
+            </Link>
           </div>
 
           {/* Disclaimer */}
