@@ -18,114 +18,116 @@ interface SwipeableContainerProps {
 }
 
 export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = true }: SwipeableContainerProps) => {
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [touchCurrent, setTouchCurrent] = useState<{ x: number; y: number } | null>(null);
-  const [isSwiping, setIsSwiping] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const startPos = useRef({ x: 0, y: 0 });
 
+  const handleDragStart = (clientX: number, clientY: number) => {
+    if (disabled || isAnimating) return;
+    setIsDragging(true);
+    startPos.current = { x: clientX, y: clientY };
+  };
+
+  const handleDragMove = (clientX: number, clientY: number) => {
+    if (!isDragging || disabled) return;
+    
+    const deltaX = clientX - startPos.current.x;
+    const deltaY = clientY - startPos.current.y;
+    setDragOffset({ x: deltaX, y: deltaY });
+  };
+
+  const handleDragEnd = () => {
+    if (!isDragging || disabled) {
+      setIsDragging(false);
+      return;
+    }
+
+    const swipeThreshold = isMobile ? 100 : 150;
+    const absDeltaX = Math.abs(dragOffset.x);
+
+    if (absDeltaX > swipeThreshold) {
+      // Trigger animation off screen
+      setIsAnimating(true);
+      const direction = dragOffset.x > 0 ? 1 : -1;
+      setDragOffset({ x: direction * 1000, y: dragOffset.y });
+
+      // Determine which celebrity won
+      if (direction > 0) {
+        // Swiped right - choose right celebrity
+        setTimeout(() => {
+          onVote(celebrities[1].id, celebrities[0].id);
+          resetDrag();
+        }, 300);
+      } else {
+        // Swiped left - choose left celebrity
+        setTimeout(() => {
+          onVote(celebrities[0].id, celebrities[1].id);
+          resetDrag();
+        }, 300);
+      }
+    } else {
+      // Snap back
+      setDragOffset({ x: 0, y: 0 });
+      setIsDragging(false);
+    }
+  };
+
+  const resetDrag = () => {
+    setDragOffset({ x: 0, y: 0 });
+    setIsDragging(false);
+    setIsAnimating(false);
+  };
+
+  // Touch events
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (disabled) return;
     const touch = e.touches[0];
-    setTouchStart({ x: touch.clientX, y: touch.clientY });
-    setIsSwiping(true);
+    handleDragStart(touch.clientX, touch.clientY);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (disabled || !touchStart) return;
     const touch = e.touches[0];
-    setTouchCurrent({ x: touch.clientX, y: touch.clientY });
+    handleDragMove(touch.clientX, touch.clientY);
   };
 
   const handleTouchEnd = () => {
-    if (disabled || !touchStart || !touchCurrent) {
-      setTouchStart(null);
-      setTouchCurrent(null);
-      setIsSwiping(false);
-      return;
-    }
-
-    const deltaX = touchCurrent.x - touchStart.x;
-    const deltaY = Math.abs(touchCurrent.y - touchStart.y);
-    const swipeThreshold = 80;
-
-    // Only trigger if horizontal swipe is dominant
-    if (Math.abs(deltaX) > swipeThreshold && Math.abs(deltaX) > deltaY) {
-      if (deltaX > 0) {
-        // Swipe right - choose right celebrity
-        onVote(celebrities[1].id, celebrities[0].id);
-      } else {
-        // Swipe left - choose left celebrity
-        onVote(celebrities[0].id, celebrities[1].id);
-      }
-    }
-
-    setTouchStart(null);
-    setTouchCurrent(null);
-    setIsSwiping(false);
+    handleDragEnd();
   };
 
-  // Mouse events for desktop
+  // Mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (disabled || isMobile) return;
-    setTouchStart({ x: e.clientX, y: e.clientY });
-    setIsSwiping(true);
+    if (isMobile) return;
+    handleDragStart(e.clientX, e.clientY);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (disabled || !touchStart || isMobile) return;
-    setTouchCurrent({ x: e.clientX, y: e.clientY });
+    if (isMobile) return;
+    handleDragMove(e.clientX, e.clientY);
   };
 
   const handleMouseUp = () => {
-    if (disabled || !touchStart || isMobile) {
-      setTouchStart(null);
-      setTouchCurrent(null);
-      setIsSwiping(false);
-      return;
-    }
+    if (isMobile) return;
+    handleDragEnd();
+  };
 
-    if (!touchCurrent) {
-      setTouchStart(null);
-      setIsSwiping(false);
-      return;
-    }
-
-    const deltaX = touchCurrent.x - touchStart.x;
-    const deltaY = Math.abs(touchCurrent.y - touchStart.y);
-    const swipeThreshold = 100;
-
-    // Only trigger if horizontal swipe is dominant
-    if (Math.abs(deltaX) > swipeThreshold && Math.abs(deltaX) > deltaY) {
-      if (deltaX > 0) {
-        // Swipe right - choose right celebrity
-        onVote(celebrities[1].id, celebrities[0].id);
-      } else {
-        // Swipe left - choose left celebrity
-        onVote(celebrities[0].id, celebrities[1].id);
-      }
-    }
-
-    setTouchStart(null);
-    setTouchCurrent(null);
-    setIsSwiping(false);
+  const getRotation = () => {
+    return dragOffset.x * 0.03; // Slight rotation based on drag
   };
 
   const getOverlayOpacity = (side: 'left' | 'right') => {
-    if (!touchStart || !touchCurrent) return 0;
-    
-    const deltaX = touchCurrent.x - touchStart.x;
     const maxOpacity = 0.8;
-    const opacity = Math.min(Math.abs(deltaX) / 150, maxOpacity);
+    const opacity = Math.min(Math.abs(dragOffset.x) / 150, maxOpacity);
     
-    if (side === 'left' && deltaX < 0) return opacity;
-    if (side === 'right' && deltaX > 0) return opacity;
+    if (side === 'left' && dragOffset.x < 0) return opacity;
+    if (side === 'right' && dragOffset.x > 0) return opacity;
     return 0;
   };
 
   return (
     <div
       ref={containerRef}
-      className={`touch-none select-none relative ${isSwiping ? 'cursor-grabbing' : 'cursor-grab'}`}
+      className={`select-none relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -133,8 +135,30 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      style={{
+        transform: `translate(${dragOffset.x}px, ${dragOffset.y}px) rotate(${getRotation()}deg)`,
+        transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+      }}
     >
       <div className={isMobile ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-8 md:gap-12"}>
+        {/* Overlay indicators for swipe direction */}
+        <div 
+          className={`absolute inset-0 bg-primary/20 z-10 flex items-center justify-center pointer-events-none ${isMobile ? 'rounded-2xl' : 'rounded-3xl'}`}
+          style={{ opacity: getOverlayOpacity('left') }}
+        >
+          <div className="bg-primary text-white px-6 py-3 rounded-full font-bold text-xl">
+            CHOOSE LEFT
+          </div>
+        </div>
+        <div 
+          className={`absolute inset-0 bg-primary/20 z-10 flex items-center justify-center pointer-events-none ${isMobile ? 'rounded-2xl' : 'rounded-3xl'}`}
+          style={{ opacity: getOverlayOpacity('right') }}
+        >
+          <div className="bg-primary text-white px-6 py-3 rounded-full font-bold text-xl">
+            CHOOSE RIGHT
+          </div>
+        </div>
+
         {celebrities.map((celebrity, index) => (
           <div key={celebrity.id} className="relative">
             {/* Swipe direction indicator - only on mobile */}
@@ -156,20 +180,12 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
               </div>
             )}
 
-            {/* Overlay for swipe feedback */}
-            <div 
-              className={`absolute inset-0 bg-primary z-10 flex items-center justify-center pointer-events-none ${isMobile ? 'rounded-2xl' : 'rounded-3xl'}`}
-              style={{ opacity: getOverlayOpacity(index === 0 ? 'left' : 'right') }}
-            >
-              <span className="text-white text-5xl font-bold">✓</span>
-            </div>
-
             <Card
-              className={`overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 cursor-pointer ${
+              className={`overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 ${
                 isMobile ? 'rounded-2xl' : 'rounded-3xl'
-              } ${isSwiping ? 'pointer-events-none' : ''}`}
+              } ${isDragging || isAnimating ? 'pointer-events-none' : 'cursor-pointer'}`}
               onClick={() => {
-                if (!disabled && !isSwiping) {
+                if (!disabled && !isDragging && !isAnimating) {
                   const other = celebrities.find(c => c.id !== celebrity.id)!;
                   onVote(celebrity.id, other.id);
                 }
@@ -180,6 +196,7 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
                   src={celebrity.image_path}
                   alt={celebrity.name}
                   className={`w-full h-full object-cover ${!isMobile && 'group-hover:scale-110 transition-transform duration-700'}`}
+                  draggable={false}
                 />
                 {!isMobile && (
                   <>
@@ -207,7 +224,7 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
       {/* Swipe instruction - only on mobile */}
       {isMobile && (
         <div className="text-center mt-4 text-sm text-muted-foreground">
-          Tap or swipe to choose
+          Tap or drag to choose
         </div>
       )}
     </div>
