@@ -1,11 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 
 interface QueuedVote {
-  winnerId: string;
-  loserId: string;
+  winnerId: string | null;
+  loserId: string | null;
   userId: string | null;
   clickTimeMs: number;
   timestamp: number;
+  isSkip?: boolean;
+  celebrity1Id?: string;
+  celebrity2Id?: string;
 }
 
 const QUEUE_KEY = 'offline_vote_queue';
@@ -50,6 +53,9 @@ export const offlineQueue = {
             loserId: vote.loserId,
             userId: vote.userId,
             clickTimeMs: vote.clickTimeMs,
+            isSkip: vote.isSkip || false,
+            celebrity1Id: vote.celebrity1Id,
+            celebrity2Id: vote.celebrity2Id,
           }
         });
 

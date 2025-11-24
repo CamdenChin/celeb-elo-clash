@@ -39,7 +39,65 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { winnerId, loserId, userId, clickTimeMs } = await req.json();
+    const { winnerId, loserId, userId, clickTimeMs, isSkip, celebrity1Id, celebrity2Id } = await req.json();
+    
+    // Handle skip - both celebrities lose rating
+    if (isSkip && celebrity1Id && celebrity2Id) {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      // Fetch both celebrities
+      const { data: celeb1 } = await supabase
+        .from('celebrities')
+        .select('elo_rating, games_played')
+        .eq('id', celebrity1Id)
+        .single();
+
+      const { data: celeb2 } = await supabase
+        .from('celebrities')
+        .select('elo_rating, games_played')
+        .eq('id', celebrity2Id)
+        .single();
+
+      if (!celeb1 || !celeb2) {
+        return new Response(
+          JSON.stringify({ error: 'Celebrities not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Both lose rating (penalty for skip)
+      const penalty = BASE_K_FACTOR * 0.5; // 16 points penalty
+      const newRating1 = celeb1.elo_rating - penalty;
+      const newRating2 = celeb2.elo_rating - penalty;
+
+      // Update both celebrities
+      await supabase
+        .from('celebrities')
+        .update({
+          elo_rating: newRating1,
+          games_played: celeb1.games_played + 1,
+        })
+        .eq('id', celebrity1Id);
+
+      await supabase
+        .from('celebrities')
+        .update({
+          elo_rating: newRating2,
+          games_played: celeb2.games_played + 1,
+        })
+        .eq('id', celebrity2Id);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          skipped: true,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     if (!winnerId || !loserId) {
       return new Response(
