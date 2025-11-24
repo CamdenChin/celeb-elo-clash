@@ -41,21 +41,30 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: "google/gemini-3-pro-image-preview",
         messages: [
           {
             role: "user",
             content: prompt
           }
         ],
-        modalities: ["image"]
+        modalities: ["image", "text"]
       })
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AI gateway error:', response.status, errorText);
+      throw new Error(`AI gateway returned ${response.status}: ${errorText}`);
+    }
+
     const data = await response.json();
+    console.log('API Response:', JSON.stringify(data, null, 2));
+    
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!imageUrl) {
+      console.error('No image URL found in response:', JSON.stringify(data));
       throw new Error("No image generated");
     }
 
