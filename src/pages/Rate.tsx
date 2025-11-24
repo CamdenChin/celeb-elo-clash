@@ -27,7 +27,7 @@ const Rate = () => {
   const [pairDisplayTime, setPairDisplayTime] = useState<number>(Date.now());
   const [streak, setStreak] = useState(0);
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
-  const [globalVotes, setGlobalVotes] = useState(0);
+  const [userVotes, setUserVotes] = useState(0);
   const [bearImages, setBearImages] = useState<Record<string, string>>({});
   const [loadingBears, setLoadingBears] = useState(true);
   const navigate = useNavigate();
@@ -39,6 +39,16 @@ const Rate = () => {
     { type: "koala", name: "Koala" },
     { type: "teddy", name: "Teddy Bear" },
     { type: "fancy", name: "Fancy Bear" },
+    { type: "grizzly", name: "Grizzly Bear" },
+    { type: "sun", name: "Sun Bear" },
+    { type: "spectacled", name: "Spectacled Bear" },
+    { type: "sloth", name: "Sloth Bear" },
+    { type: "black", name: "Black Bear" },
+    { type: "spirit", name: "Spirit Bear" },
+    { type: "red-panda", name: "Red Panda" },
+    { type: "gummy", name: "Gummy Bear" },
+    { type: "care", name: "Care Bear" },
+    { type: "cosmic", name: "Cosmic Bear" },
   ];
 
   // Calculate which bear and progress with dynamic scaling
@@ -55,7 +65,7 @@ const Rate = () => {
   let votesNeededForNext = bearThresholds[0];
 
   for (let i = 0; i < bearThresholds.length; i++) {
-    if (globalVotes >= bearThresholds[i]) {
+    if (userVotes >= bearThresholds[i]) {
       currentBearIndex = i + 1;
       votesNeededForNext = bearThresholds[i + 1] || bearThresholds[i];
     } else {
@@ -70,7 +80,7 @@ const Rate = () => {
 
   const currentBear = bears[currentBearIndex];
   const currentThreshold = bearThresholds[currentBearIndex - 1] || 0;
-  const votesInCurrentTier = globalVotes - currentThreshold;
+  const votesInCurrentTier = userVotes - currentThreshold;
   const votesNeededInTier = votesNeededForNext - currentThreshold;
 
   // Load and cache bear images
@@ -158,18 +168,24 @@ const Rate = () => {
       setUser(session?.user ?? null);
     });
 
-    // Check for existing session and load global stats
+    // Check for existing session and load user vote count
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
-      // Load global vote count
-      const { count } = await supabase
-        .from('matchups')
-        .select('*', { count: 'exact', head: true });
-      
-      if (count !== null) {
-        setGlobalVotes(count);
+      // Load user-specific vote count
+      if (session?.user) {
+        const { data: stats } = await supabase
+          .from('user_stats')
+          .select('total_votes')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        setUserVotes(stats?.total_votes || 0);
+      } else {
+        // For anonymous users, use localStorage
+        const anonymousVotes = parseInt(localStorage.getItem('anonymous_votes') || '0');
+        setUserVotes(anonymousVotes);
       }
       
       setLoading(false);
@@ -257,41 +273,35 @@ const Rate = () => {
         setNextPair(null);
         setVoting(false);
         
-        // Increment streak and global votes
+        // Increment streak and user votes
         const newStreak = streak + 1;
         setStreak(newStreak);
-        const newGlobalVotes = globalVotes + 1;
+        const newUserVotes = userVotes + 1;
         const previousBearIndex = currentBearIndex;
         
         // Calculate new bear index
         let newBearIndex = 0;
         for (let i = 0; i < bearThresholds.length; i++) {
-          if (newGlobalVotes >= bearThresholds[i]) {
-            newBearIndex = i;
+          if (newUserVotes >= bearThresholds[i]) {
+            newBearIndex = i + 1;
           }
         }
         
-        setGlobalVotes(newGlobalVotes);
+        setUserVotes(newUserVotes);
         
-        // Save to database if authenticated (track personal votes)
+        // Save to database if authenticated, otherwise localStorage
         if (user) {
-          const { data: stats } = await supabase
-            .from('user_stats')
-            .select('total_votes')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          const userVotes = (stats?.total_votes || 0) + 1;
-          
           supabase
             .from('user_stats')
             .upsert({ 
               user_id: user.id, 
-              total_votes: userVotes 
+              total_votes: newUserVotes 
             })
             .then(({ error }) => {
               if (error) console.error('Error saving stats:', error);
             });
+        } else {
+          localStorage.setItem('anonymous_votes', newUserVotes.toString());
         }
         
         // Show celebration for streak milestones
@@ -307,7 +317,7 @@ const Rate = () => {
             <div className="space-y-1">
               <div className="text-lg">🎉 New Bear Unlocked!</div>
               <div className="text-xl font-semibold">{newBear.name}</div>
-              <div className="text-xs opacity-80">Global votes: {newGlobalVotes}</div>
+              <div className="text-xs opacity-80">Your votes: {newUserVotes}</div>
             </div>,
             { duration: 4000 }
           );
@@ -331,36 +341,30 @@ const Rate = () => {
       if (!nextPair) {
         const newStreak = streak + 1;
         setStreak(newStreak);
-        const newGlobalVotes = globalVotes + 1;
+        const newUserVotes = userVotes + 1;
         const previousBearIndex = currentBearIndex;
         
         let newBearIndex = 0;
         for (let i = 0; i < bearThresholds.length; i++) {
-          if (newGlobalVotes >= bearThresholds[i]) {
-            newBearIndex = i;
+          if (newUserVotes >= bearThresholds[i]) {
+            newBearIndex = i + 1;
           }
         }
         
-        setGlobalVotes(newGlobalVotes);
+        setUserVotes(newUserVotes);
         
         if (user) {
-          const { data: stats } = await supabase
-            .from('user_stats')
-            .select('total_votes')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          const userVotes = (stats?.total_votes || 0) + 1;
-          
           supabase
             .from('user_stats')
             .upsert({ 
               user_id: user.id, 
-              total_votes: userVotes 
+              total_votes: newUserVotes 
             })
             .then(({ error }) => {
               if (error) console.error('Error saving stats:', error);
             });
+        } else {
+          localStorage.setItem('anonymous_votes', newUserVotes.toString());
         }
         
         if (newStreak % 5 === 0) {
@@ -374,7 +378,7 @@ const Rate = () => {
             <div className="space-y-1">
               <div className="text-lg">🎉 New Bear Unlocked!</div>
               <div className="text-xl font-semibold">{newBear.name}</div>
-              <div className="text-xs opacity-80">Global votes: {newGlobalVotes}</div>
+              <div className="text-xs opacity-80">Your votes: {newUserVotes}</div>
             </div>,
             { duration: 4000 }
           );
