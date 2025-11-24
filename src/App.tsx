@@ -8,6 +8,7 @@ import Rate from "./pages/Rate";
 import Leaderboard from "./pages/Leaderboard";
 import CelebrityDetail from "./pages/CelebrityDetail";
 import Admin from "./pages/Admin";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
