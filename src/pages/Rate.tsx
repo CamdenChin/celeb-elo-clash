@@ -27,20 +27,49 @@ const Rate = () => {
   const [streak, setStreak] = useState(0);
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
   const [totalVotes, setTotalVotes] = useState(0);
+  const [bearImages, setBearImages] = useState<Record<string, string>>({});
+  const [loadingBears, setLoadingBears] = useState(true);
   const navigate = useNavigate();
 
   const bears = [
-    { emoji: "🐻", name: "Brown Bear" },
-    { emoji: "🐻‍❄️", name: "Polar Bear" },
-    { emoji: "🐼", name: "Panda" },
-    { emoji: "🐨", name: "Koala" },
-    { emoji: "🧸", name: "Teddy Bear" },
-    { emoji: "🎀🐻", name: "Fancy Bear" },
+    { type: "brown", name: "Brown Bear" },
+    { type: "polar", name: "Polar Bear" },
+    { type: "panda", name: "Panda" },
+    { type: "koala", name: "Koala" },
+    { type: "teddy", name: "Teddy Bear" },
+    { type: "fancy", name: "Fancy Bear" },
   ];
 
   const currentBearIndex = Math.floor(totalVotes / 100) % bears.length;
   const currentBear = bears[currentBearIndex];
   const votesUntilNextBear = 100 - (totalVotes % 100);
+
+  // Generate bear images on mount
+  useEffect(() => {
+    const generateBearImages = async () => {
+      const images: Record<string, string> = {};
+      
+      for (const bear of bears) {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-bear', {
+            body: { bearType: bear.type }
+          });
+          
+          if (error) throw error;
+          if (data?.imageUrl) {
+            images[bear.type] = data.imageUrl;
+          }
+        } catch (error) {
+          console.error(`Error generating ${bear.name}:`, error);
+        }
+      }
+      
+      setBearImages(images);
+      setLoadingBears(false);
+    };
+
+    generateBearImages();
+  }, []);
 
   const fetchRandomPair = async (prefetch = false) => {
     try {
@@ -180,10 +209,11 @@ const Rate = () => {
         
         // Show special message when bear changes
         if (previousBearIndex !== newBearIndex) {
+          const newBear = bears[newBearIndex];
           toast.success(
             <div className="space-y-1">
               <div className="text-lg">🎉 New Bear Unlocked!</div>
-              <div className="text-2xl">{bears[newBearIndex].emoji} {bears[newBearIndex].name}</div>
+              <div className="text-xl font-semibold">{newBear.name}</div>
               <div className="text-xs opacity-80">You've made {newTotalVotes} votes!</div>
             </div>,
             { duration: 4000 }
@@ -219,10 +249,11 @@ const Rate = () => {
         }
         
         if (previousBearIndex !== newBearIndex) {
+          const newBear = bears[newBearIndex];
           toast.success(
             <div className="space-y-1">
               <div className="text-lg">🎉 New Bear Unlocked!</div>
-              <div className="text-2xl">{bears[newBearIndex].emoji} {bears[newBearIndex].name}</div>
+              <div className="text-xl font-semibold">{newBear.name}</div>
               <div className="text-xs opacity-80">You've made {newTotalVotes} votes!</div>
             </div>,
             { duration: 4000 }
@@ -292,10 +323,20 @@ const Rate = () => {
               
               {/* Bear Mascot */}
               <div className="ml-2 group relative">
-                <div className="text-4xl transition-transform hover:scale-110 cursor-pointer">
-                  {currentBear.emoji}
-                </div>
-                <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-40">
+                {loadingBears ? (
+                  <div className="w-12 h-12 rounded-full bg-muted animate-pulse" />
+                ) : bearImages[currentBear.type] ? (
+                  <img 
+                    src={bearImages[currentBear.type]} 
+                    alt={currentBear.name}
+                    className="w-12 h-12 object-contain transition-transform hover:scale-110 cursor-pointer"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-2xl">
+                    🐻
+                  </div>
+                )}
+                <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-40 z-50">
                   <div className="text-sm font-semibold mb-1">{currentBear.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {totalVotes} votes
