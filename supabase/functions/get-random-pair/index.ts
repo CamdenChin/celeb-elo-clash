@@ -29,49 +29,41 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 30% chance to do fully random pairing (mix of rated/unrated)
-    const useRandomPairing = Math.random() < 0.3;
+    // 50% chance to exclude starting ELO (1200) for more variety
+    const excludeStartingElo = Math.random() < 0.5;
 
-    if (useRandomPairing) {
-      // Fully random pairing - get two random celebrities
-      const offset1 = Math.floor(Math.random() * count);
-      let offset2 = Math.floor(Math.random() * count);
-      while (offset2 === offset1) {
-        offset2 = Math.floor(Math.random() * count);
+    let celeb1Data;
+    if (excludeStartingElo) {
+      // Get celebrities that have been rated (not 1200)
+      const { data: ratedCelebs } = await supabase
+        .from('celebrities')
+        .select('*')
+        .neq('elo_rating', 1200);
+
+      if (ratedCelebs && ratedCelebs.length > 0) {
+        const randomIndex = Math.floor(Math.random() * ratedCelebs.length);
+        celeb1Data = ratedCelebs[randomIndex];
+        console.log('Selected rated celebrity (non-1200):', celeb1Data.name, celeb1Data.elo_rating);
+      } else {
+        // Fallback to any celebrity if no rated ones exist
+        const offset1 = Math.floor(Math.random() * count);
+        const { data } = await supabase
+          .from('celebrities')
+          .select('*')
+          .range(offset1, offset1)
+          .single();
+        celeb1Data = data;
       }
-
-      const { data: celeb1Data } = await supabase
+    } else {
+      // Get any random celebrity
+      const offset1 = Math.floor(Math.random() * count);
+      const { data } = await supabase
         .from('celebrities')
         .select('*')
         .range(offset1, offset1)
         .single();
-
-      const { data: celeb2Data } = await supabase
-        .from('celebrities')
-        .select('*')
-        .range(offset2, offset2)
-        .single();
-
-      if (!celeb1Data || !celeb2Data) {
-        throw new Error('Failed to fetch random celebrities');
-      }
-
-      console.log(`Selected pair (random): ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating})`);
-      
-      return new Response(
-        JSON.stringify({ celebrities: [celeb1Data, celeb2Data] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      celeb1Data = data;
     }
-
-    // 70% chance to use ELO-based matching
-    // Get first random celebrity
-    const offset1 = Math.floor(Math.random() * count);
-    const { data: celeb1Data } = await supabase
-      .from('celebrities')
-      .select('*')
-      .range(offset1, offset1)
-      .single();
 
     if (!celeb1Data) {
       throw new Error('Failed to fetch first celebrity');
