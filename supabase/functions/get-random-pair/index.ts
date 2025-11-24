@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Fetching random pair of celebrities...');
+    console.log('Fetching random pair of celebrities with similar Elo...');
 
     // Get total count
     const { count } = await supabase
@@ -29,8 +29,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get two random celebrities
-    // First, get a random offset for the first celebrity
+    // Get first random celebrity
     const offset1 = Math.floor(Math.random() * count);
     const { data: celeb1Data } = await supabase
       .from('celebrities')
@@ -38,23 +37,56 @@ Deno.serve(async (req) => {
       .range(offset1, offset1)
       .single();
 
-    // Get another random celebrity, different from the first
-    let offset2 = Math.floor(Math.random() * count);
-    while (offset2 === offset1) {
-      offset2 = Math.floor(Math.random() * count);
+    if (!celeb1Data) {
+      throw new Error('Failed to fetch first celebrity');
     }
-    
-    const { data: celeb2Data } = await supabase
+
+    // Find celebrities within ±200 Elo range of the first celebrity
+    const eloRange = 200;
+    const minElo = Number(celeb1Data.elo_rating) - eloRange;
+    const maxElo = Number(celeb1Data.elo_rating) + eloRange;
+
+    const { data: similarCelebs, error: similarError } = await supabase
       .from('celebrities')
       .select('*')
-      .range(offset2, offset2)
-      .single();
+      .gte('elo_rating', minElo)
+      .lte('elo_rating', maxElo)
+      .neq('id', celeb1Data.id);
 
-    if (!celeb1Data || !celeb2Data) {
-      throw new Error('Failed to fetch celebrities');
+    if (similarError || !similarCelebs || similarCelebs.length === 0) {
+      // Fallback: if no similar Elo celebrities found, get any random celebrity
+      console.log('No similar Elo celebrities found, using fallback random selection');
+      let offset2 = Math.floor(Math.random() * count);
+      while (offset2 === offset1) {
+        offset2 = Math.floor(Math.random() * count);
+      }
+      
+      const { data: celeb2Data } = await supabase
+        .from('celebrities')
+        .select('*')
+        .range(offset2, offset2)
+        .single();
+
+      if (!celeb2Data) {
+        throw new Error('Failed to fetch second celebrity');
+      }
+
+      console.log(`Selected pair (fallback): ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating})`);
+      return new Response(
+        JSON.stringify({ celebrities: [celeb1Data, celeb2Data] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`Selected pair: ${celeb1Data.name} vs ${celeb2Data.name}`);
+    // Select random celebrity from similar Elo range
+    const randomIndex = Math.floor(Math.random() * similarCelebs.length);
+    const celeb2Data = similarCelebs[randomIndex];
+
+    if (!celeb2Data) {
+      throw new Error('Failed to fetch second celebrity');
+    }
+
+    console.log(`Selected pair: ${celeb1Data.name} (${celeb1Data.elo_rating}) vs ${celeb2Data.name} (${celeb2Data.elo_rating}), Elo diff: ${Math.abs(Number(celeb1Data.elo_rating) - Number(celeb2Data.elo_rating))}`);
 
     return new Response(
       JSON.stringify({ celebrities: [celeb1Data, celeb2Data] }),
