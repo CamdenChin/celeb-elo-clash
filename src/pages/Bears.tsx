@@ -11,22 +11,22 @@ const Bears = () => {
   const [loading, setLoading] = useState(true);
 
   const bears = [
-    { type: "brown", name: "Brown Bear" },
-    { type: "polar", name: "Polar Bear" },
-    { type: "panda", name: "Panda" },
-    { type: "koala", name: "Koala" },
-    { type: "teddy", name: "Teddy Bear" },
-    { type: "fancy", name: "Fancy Bear" },
-    { type: "grizzly", name: "Grizzly Bear" },
-    { type: "sun", name: "Sun Bear" },
-    { type: "spectacled", name: "Spectacled Bear" },
-    { type: "sloth", name: "Sloth Bear" },
-    { type: "black", name: "Black Bear" },
-    { type: "spirit", name: "Spirit Bear" },
-    { type: "red-panda", name: "Red Panda" },
-    { type: "gummy", name: "Gummy Bear" },
-    { type: "care", name: "Care Bear" },
-    { type: "cosmic", name: "Cosmic Bear" },
+    { type: "brown", name: "Brown Bear", emoji: "🐻" },
+    { type: "polar", name: "Polar Bear", emoji: "🐻‍❄️" },
+    { type: "panda", name: "Panda", emoji: "🐼" },
+    { type: "koala", name: "Koala", emoji: "🐨" },
+    { type: "teddy", name: "Teddy Bear", emoji: "🧸" },
+    { type: "fancy", name: "Fancy Bear", emoji: "🎩" },
+    { type: "grizzly", name: "Grizzly Bear", emoji: "🐻" },
+    { type: "sun", name: "Sun Bear", emoji: "☀️" },
+    { type: "spectacled", name: "Spectacled Bear", emoji: "👓" },
+    { type: "sloth", name: "Sloth Bear", emoji: "🦥" },
+    { type: "black", name: "Black Bear", emoji: "🖤" },
+    { type: "spirit", name: "Spirit Bear", emoji: "👻" },
+    { type: "red-panda", name: "Red Panda", emoji: "🦊" },
+    { type: "gummy", name: "Gummy Bear", emoji: "🍬" },
+    { type: "care", name: "Care Bear", emoji: "💖" },
+    { type: "cosmic", name: "Cosmic Bear", emoji: "✨" },
   ];
 
   // Calculate thresholds dynamically
@@ -171,7 +171,7 @@ const Bears = () => {
                           />
                         ) : (
                           <div className="w-24 h-24 flex items-center justify-center text-5xl">
-                            🐻
+                            {bear.emoji}
                           </div>
                         )}
                       </div>
