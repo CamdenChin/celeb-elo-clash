@@ -20,6 +20,16 @@ serve(async (req) => {
       'koala': 'A cute, friendly koala bear mascot illustration, simple cartoon style, gray fluffy fur, big ears, smiling face, soft round features, solid white background',
       'teddy': 'A cute, friendly teddy bear mascot illustration, simple cartoon style, plush toy appearance, button eyes, smiling face, soft round features, warm brown colors, solid white background',
       'fancy': 'A cute, friendly fancy bear mascot illustration wearing a small crown or bow, simple cartoon style, elegant and sparkly, smiling face, soft round features, solid white background',
+      'grizzly': 'A cute, friendly grizzly bear mascot illustration, simple cartoon style, dark brown shaggy fur, strong build, smiling face, soft round features, solid white background',
+      'sun': 'A cute, friendly sun bear mascot illustration, simple cartoon style, black fur with golden chest marking, smiling face, soft round features, solid white background',
+      'spectacled': 'A cute, friendly spectacled bear mascot illustration, simple cartoon style, black fur with white eye markings like glasses, smiling face, soft round features, solid white background',
+      'sloth': 'A cute, friendly sloth bear mascot illustration, simple cartoon style, shaggy black fur, long snout, smiling face, soft round features, solid white background',
+      'black': 'A cute, friendly black bear mascot illustration, simple cartoon style, glossy black fur, smiling face, soft round features, solid white background',
+      'spirit': 'A cute, friendly spirit bear mascot illustration, simple cartoon style, rare white/cream fur with mystical glow, smiling face, soft round features, solid white background',
+      'red-panda': 'A cute, friendly red panda mascot illustration, simple cartoon style, reddish-brown fur, white face markings, fluffy ringed tail, smiling face, soft round features, solid white background',
+      'gummy': 'A cute, friendly gummy bear mascot illustration, simple cartoon style, translucent colorful jelly appearance, smiling face, soft round features, solid white background',
+      'care': 'A cute, friendly care bear mascot illustration, simple cartoon style, pastel colored fur with heart symbol on belly, smiling face, soft round features, solid white background',
+      'cosmic': 'A cute, friendly cosmic bear mascot illustration, simple cartoon style, galaxy-patterned fur with stars and nebula colors, smiling face, soft round features, solid white background',
     };
 
     const prompt = prompts[bearType as keyof typeof prompts] || prompts.brown;

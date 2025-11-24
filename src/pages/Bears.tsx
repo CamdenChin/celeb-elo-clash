@@ -6,28 +6,61 @@ import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 
 const Bears = () => {
-  const [globalVotes, setGlobalVotes] = useState(0);
+  const [userVotes, setUserVotes] = useState(0);
   const [bearImages, setBearImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   const bears = [
-    { type: "brown", name: "Brown Bear", threshold: 0 },
-    { type: "polar", name: "Polar Bear", threshold: 10 },
-    { type: "panda", name: "Panda", threshold: 30 },
-    { type: "koala", name: "Koala", threshold: 60 },
-    { type: "teddy", name: "Teddy Bear", threshold: 100 },
-    { type: "fancy", name: "Fancy Bear", threshold: 150 },
+    { type: "brown", name: "Brown Bear" },
+    { type: "polar", name: "Polar Bear" },
+    { type: "panda", name: "Panda" },
+    { type: "koala", name: "Koala" },
+    { type: "teddy", name: "Teddy Bear" },
+    { type: "fancy", name: "Fancy Bear" },
+    { type: "grizzly", name: "Grizzly Bear" },
+    { type: "sun", name: "Sun Bear" },
+    { type: "spectacled", name: "Spectacled Bear" },
+    { type: "sloth", name: "Sloth Bear" },
+    { type: "black", name: "Black Bear" },
+    { type: "spirit", name: "Spirit Bear" },
+    { type: "red-panda", name: "Red Panda" },
+    { type: "gummy", name: "Gummy Bear" },
+    { type: "care", name: "Care Bear" },
+    { type: "cosmic", name: "Cosmic Bear" },
   ];
+
+  // Calculate thresholds dynamically
+  const getBearThresholds = () => {
+    const thresholds = [10];
+    for (let i = 1; i < bears.length; i++) {
+      thresholds.push(thresholds[i - 1] + (i + 1) * 10);
+    }
+    return thresholds;
+  };
+
+  const bearThresholds = getBearThresholds();
+  const bearsWithThresholds = bears.map((bear, index) => ({
+    ...bear,
+    threshold: index === 0 ? 0 : bearThresholds[index - 1]
+  }));
 
   useEffect(() => {
     const loadData = async () => {
-      // Load global vote count
-      const { count } = await supabase
-        .from('matchups')
-        .select('*', { count: 'exact', head: true });
+      // Load user-specific vote count
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (count !== null) {
-        setGlobalVotes(count);
+      if (session?.user) {
+        const { data: stats } = await supabase
+          .from('user_stats')
+          .select('total_votes')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        setUserVotes(stats?.total_votes || 0);
+      } else {
+        // For anonymous users, use localStorage
+        const anonymousVotes = parseInt(localStorage.getItem('anonymous_votes') || '0');
+        setUserVotes(anonymousVotes);
       }
 
       // Load cached bear images
@@ -76,7 +109,7 @@ const Bears = () => {
               Unlock Bears by Voting
             </h2>
             <p className="text-muted-foreground text-lg">
-              Global votes: <span className="font-semibold text-foreground">{globalVotes}</span>
+              Your votes: <span className="font-semibold text-foreground">{userVotes}</span>
             </p>
           </div>
 
@@ -86,11 +119,11 @@ const Bears = () => {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2">
-              {bears.map((bear, index) => {
-                const isUnlocked = globalVotes >= bear.threshold;
-                const nextBear = bears[index + 1];
+              {bearsWithThresholds.map((bear, index) => {
+                const isUnlocked = userVotes >= bear.threshold;
+                const nextBear = bearsWithThresholds[index + 1];
                 const progressToNext = nextBear 
-                  ? ((globalVotes - bear.threshold) / (nextBear.threshold - bear.threshold)) * 100
+                  ? ((userVotes - bear.threshold) / (nextBear.threshold - bear.threshold)) * 100
                   : 100;
 
                 return (
