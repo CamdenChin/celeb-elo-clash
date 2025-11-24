@@ -36,6 +36,7 @@ const Rate = () => {
   const [loadingBears, setLoadingBears] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [queuedVotes, setQueuedVotes] = useState(0);
+  const [skipAnimating, setSkipAnimating] = useState(false);
   const navigate = useNavigate();
 
   const bears = [
@@ -525,12 +526,90 @@ const Rate = () => {
         handleVote(celebrities[0].id, celebrities[1].id);
       } else if (e.key === '2') {
         handleVote(celebrities[1].id, celebrities[0].id);
+      } else if (e.key === '0') {
+        handleSkip();
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [celebrities, voting, loading]);
+
+  const handleSkip = async () => {
+    if (voting || !celebrities || skipAnimating) return;
+    
+    setSkipAnimating(true);
+    setVoting(true);
+    
+    try {
+      // If offline, queue the skip
+      if (!isOnline) {
+        offlineQueue.enqueue({
+          winnerId: null,
+          loserId: null,
+          userId: user?.id || null,
+          clickTimeMs: 0,
+          isSkip: true,
+          celebrity1Id: celebrities[0].id,
+          celebrity2Id: celebrities[1].id,
+        });
+        
+        setQueuedVotes(offlineQueue.getSize());
+        
+        // Show next pair after animation
+        setTimeout(() => {
+          if (nextPair) {
+            setCelebrities(nextPair);
+            setPairDisplayTime(Date.now());
+            setNextPair(null);
+            fetchRandomPair(true);
+          }
+          setSkipAnimating(false);
+        }, 400);
+        
+        toast.info("Skip queued offline! Both celebrities will lose rating when you reconnect.");
+        setVoting(false);
+        return;
+      }
+
+      // Submit skip to backend
+      const { error } = await supabase.functions.invoke('submit-vote', {
+        body: { 
+          winnerId: null,
+          loserId: null, 
+          userId: user?.id || null,
+          clickTimeMs: 0,
+          isSkip: true,
+          celebrity1Id: celebrities[0].id,
+          celebrity2Id: celebrities[1].id,
+        }
+      });
+
+      if (error) throw error;
+
+      // Show next pair after animation completes
+      setTimeout(() => {
+        if (nextPair) {
+          setCelebrities(nextPair);
+          setPairDisplayTime(Date.now());
+          setNextPair(null);
+          fetchRandomPair(true);
+        }
+        setSkipAnimating(false);
+      }, 400);
+
+      // Reset streak on skip
+      setStreak(0);
+      
+      toast.info("⏭️ Skipped! Both celebrities lost rating");
+    } catch (error) {
+      console.error('Error skipping:', error);
+      toast.error("Failed to skip");
+      setSkipAnimating(false);
+    } finally {
+      setVoting(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -674,8 +753,10 @@ const Rate = () => {
                 <SwipeableContainer
                   celebrities={celebrities}
                   onVote={handleVote}
+                  onSkip={handleSkip}
                   disabled={voting}
                   isMobile={true}
+                  skipAnimating={skipAnimating}
                 />
               </div>
 
@@ -684,8 +765,10 @@ const Rate = () => {
                 <SwipeableContainer
                   celebrities={celebrities}
                   onVote={handleVote}
+                  onSkip={handleSkip}
                   disabled={voting}
                   isMobile={false}
+                  skipAnimating={skipAnimating}
                 />
               </div>
             </>

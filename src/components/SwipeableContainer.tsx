@@ -17,14 +17,25 @@ interface DraggableCardProps {
   isMobile?: boolean;
   showLeftArrow?: boolean;
   showRightArrow?: boolean;
+  skipAnimating?: boolean;
+  skipDirection?: 'left' | 'right';
 }
 
-const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow, showRightArrow }: DraggableCardProps) => {
+const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow, showRightArrow, skipAnimating, skipDirection }: DraggableCardProps) => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
   const startPos = useRef({ x: 0, y: 0 });
+
+  // Handle skip animation
+  if (skipAnimating && skipDirection) {
+    const direction = skipDirection === 'left' ? -1 : 1;
+    if (dragOffset.x === 0) {
+      setDragOffset({ x: direction * 1000, y: -300 });
+      setIsAnimating(true);
+    }
+  }
 
   const handleDragStart = (clientX: number, clientY: number) => {
     if (disabled || isAnimating) return;
@@ -227,11 +238,13 @@ const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow,
 interface SwipeableContainerProps {
   celebrities: [Celebrity, Celebrity];
   onVote: (winnerId: string, loserId: string) => void;
+  onSkip?: () => void;
   disabled?: boolean;
   isMobile?: boolean;
+  skipAnimating?: boolean;
 }
 
-export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = true }: SwipeableContainerProps) => {
+export const SwipeableContainer = ({ celebrities, onVote, onSkip, disabled, isMobile = true, skipAnimating }: SwipeableContainerProps) => {
   return (
     <div className="select-none">
       <div className={isMobile ? "grid grid-cols-2 gap-3" : "grid grid-cols-2 gap-8 md:gap-12"}>
@@ -246,17 +259,30 @@ export const SwipeableContainer = ({ celebrities, onVote, disabled, isMobile = t
               isMobile={isMobile}
               showLeftArrow={isMobile && index === 0}
               showRightArrow={isMobile && index === 1}
+              skipAnimating={skipAnimating}
+              skipDirection={index === 0 ? 'left' : 'right'}
             />
           );
         })}
       </div>
       
-      {/* Instructions */}
-      <div className="text-center mt-4 text-sm text-muted-foreground">
-        {isMobile ? (
-          "Tap, drag or use keys 1/2"
-        ) : (
-          "Click, drag or use keys 1/2"
+      {/* Instructions and Skip Button */}
+      <div className="text-center mt-4 space-y-3">
+        <div className="text-sm text-muted-foreground">
+          {isMobile ? (
+            "Tap, drag or use keys 1/2"
+          ) : (
+            "Click, drag or use keys 1/2"
+          )}
+        </div>
+        {onSkip && (
+          <button
+            onClick={onSkip}
+            disabled={disabled || skipAnimating}
+            className="text-xs text-muted-foreground/70 hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Can't decide? Skip (both lose rating)
+          </button>
         )}
       </div>
     </div>
