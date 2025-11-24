@@ -38,7 +38,7 @@ serve(async (req) => {
             content: prompt
           }
         ],
-        modalities: ["image", "text"]
+        modalities: ["image"]
       })
     });
 
