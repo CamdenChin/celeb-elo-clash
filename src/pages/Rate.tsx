@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Sparkles, Heart, LogOut } from "lucide-react";
+import { ArrowLeft, Sparkles, Heart, LogOut, Wifi, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SwipeableContainer } from "@/components/SwipeableContainer";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { BearProgress } from "@/components/BearProgress";
+import { OnboardingTutorial } from "@/components/OnboardingTutorial";
+import { KeyboardShortcutsGuide } from "@/components/KeyboardShortcutsGuide";
+import { CelebrityCardSkeleton } from "@/components/CelebrityCardSkeleton";
+import { offlineQueue } from "@/lib/offlineQueue";
 import { User, Session } from "@supabase/supabase-js";
 
 export interface Celebrity {
@@ -30,6 +34,8 @@ const Rate = () => {
   const [userVotes, setUserVotes] = useState(0);
   const [bearImages, setBearImages] = useState<Record<string, string>>({});
   const [loadingBears, setLoadingBears] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [queuedVotes, setQueuedVotes] = useState(0);
   const navigate = useNavigate();
 
   const bears = [
@@ -165,6 +171,29 @@ const Rate = () => {
   };
 
   useEffect(() => {
+    // Track online/offline status
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Sync queued votes
+      offlineQueue.sync().then(result => {
+        if (result.synced > 0) {
+          toast.success(`Synced ${result.synced} offline votes!`);
+          setQueuedVotes(offlineQueue.getSize());
+        }
+      });
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.info("You're offline. Votes will be queued and synced when you reconnect.");
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check queue size on mount
+    setQueuedVotes(offlineQueue.getSize());
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
@@ -197,7 +226,11 @@ const Rate = () => {
     // Load initial pair regardless of auth status
     fetchRandomPair();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const handleVote = async (winnerId: string, loserId: string) => {
@@ -233,6 +266,40 @@ const Rate = () => {
     }
     
     try {
+      // If offline, queue the vote
+      if (!isOnline) {
+        offlineQueue.enqueue({
+          winnerId,
+          loserId,
+          userId: user?.id || null,
+          clickTimeMs
+        });
+        
+        setQueuedVotes(offlineQueue.getSize());
+        
+        // Still show next pair and update UI
+        if (nextPair) {
+          setCelebrities(nextPair);
+          setPairDisplayTime(Date.now());
+          setNextPair(null);
+          fetchRandomPair(true);
+        }
+        
+        const newUserVotes = userVotes + 1;
+        setUserVotes(newUserVotes);
+        localStorage.setItem('anonymous_votes', newUserVotes.toString());
+        
+        toast.success(
+          <div className="space-y-1">
+            <div>Vote queued offline! (#{offlineQueue.getSize()})</div>
+            <div className="text-xs opacity-80">Will sync when you're back online</div>
+          </div>
+        );
+        
+        setVoting(false);
+        return;
+      }
+
       // Check if user already voted on this exact matchup (only if authenticated)
       if (user) {
         const { data: existingVote } = await supabase
@@ -440,9 +507,12 @@ const Rate = () => {
     navigate("/auth");
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-subtle overflow-x-hidden">
+      {/* Onboarding & Keyboard Shortcuts */}
+      <OnboardingTutorial />
+      <KeyboardShortcutsGuide />
+      
       {/* Header */}
       <header className="border-b border-border/30 bg-card/60 backdrop-blur-md">
         <div className="container mx-auto px-4 py-5">
@@ -454,6 +524,21 @@ const Rate = () => {
               </Button>
             </Link>
             <div className="flex items-center gap-2 md:gap-6">
+              {/* Online/Offline Indicator */}
+              {!isOnline && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <WifiOff className="h-4 w-4" />
+                  {queuedVotes > 0 && (
+                    <span className="text-xs">({queuedVotes} queued)</span>
+                  )}
+                </div>
+              )}
+              {isOnline && queuedVotes > 0 && (
+                <div className="flex items-center gap-2 text-primary">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs">Syncing...</span>
+                </div>
+              )}
             <Link to="/bears" className="flex-shrink-0">
                 <Button variant="ghost" size="sm" className="flex items-center gap-1">
                   {bearImages[currentBear.type] ? (
@@ -551,9 +636,7 @@ const Rate = () => {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center min-h-[500px]">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
+            <CelebrityCardSkeleton />
           ) : celebrities ? (
             <>
               {/* Mobile: Swipeable Split Screen */}
