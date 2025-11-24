@@ -139,6 +139,11 @@ const Index = () => {
               </h1>
             </div>
             <div className="flex items-center gap-3">
+              <Link to="/export">
+                <Button variant="ghost" size="sm" className="font-sans">
+                  Export Dataset
+                </Button>
+              </Link>
               <Link to="/bears">
                 <Button variant="ghost" size="sm" className="font-sans flex items-center gap-1">
                   {bearImage ? (
