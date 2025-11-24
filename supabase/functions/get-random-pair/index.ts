@@ -41,8 +41,8 @@ Deno.serve(async (req) => {
       throw new Error('Failed to fetch first celebrity');
     }
 
-    // Find celebrities within ±200 Elo range of the first celebrity
-    const eloRange = 200;
+    // Find celebrities within ±10 Elo range of the first celebrity
+    const eloRange = 10;
     const minElo = Number(celeb1Data.elo_rating) - eloRange;
     const maxElo = Number(celeb1Data.elo_rating) + eloRange;
 
