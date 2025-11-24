@@ -164,13 +164,22 @@ const Bears = () => {
                       {/* Bear Image */}
                       <div className="flex-shrink-0">
                         {bearImages[bear.type] ? (
-                          <img
-                            src={bearImages[bear.type]}
-                            alt={bear.name}
-                            className="w-24 h-24 object-contain bg-background rounded-full"
-                          />
+                          // Check if it's an emoji (short string, no URL prefix)
+                          bearImages[bear.type].length <= 10 && 
+                          !bearImages[bear.type].startsWith('data:') && 
+                          !bearImages[bear.type].startsWith('http') ? (
+                            <div className="w-24 h-24 flex items-center justify-center text-6xl" role="img" aria-label={bear.name}>
+                              {bearImages[bear.type]}
+                            </div>
+                          ) : (
+                            <img
+                              src={bearImages[bear.type]}
+                              alt={bear.name}
+                              className="w-24 h-24 object-contain bg-background rounded-full"
+                            />
+                          )
                         ) : (
-                          <div className="w-24 h-24 flex items-center justify-center text-5xl">
+                          <div className="w-24 h-24 flex items-center justify-center text-6xl">
                             {bear.emoji}
                           </div>
                         )}
