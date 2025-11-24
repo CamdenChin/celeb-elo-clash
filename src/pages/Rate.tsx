@@ -443,16 +443,14 @@ const Rate = () => {
                   votesNeeded={votesNeededInTier}
                   bearName={currentBear.name}
                 />
-                {loadingBears ? (
-                  <div className="w-12 h-12 rounded-full bg-muted animate-pulse" />
-                ) : bearImages[currentBear.type] ? (
+                {bearImages[currentBear.type] ? (
                   <img 
                     src={bearImages[currentBear.type]} 
                     alt={currentBear.name}
                     className="w-12 h-12 object-contain transition-transform hover:scale-110 cursor-pointer"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-2xl">
+                  <div className="w-12 h-12 flex items-center justify-center text-3xl">
                     🐻
                   </div>
                 )}
