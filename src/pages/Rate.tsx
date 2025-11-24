@@ -431,16 +431,25 @@ const Rate = () => {
               </Button>
             </Link>
             <div className="flex items-center gap-2 md:gap-6">
-              <Link to="/bears" className="flex-shrink-0">
+            <Link to="/bears" className="flex-shrink-0">
                 <Button variant="ghost" size="sm" className="flex items-center gap-1">
                   {bearImages[currentBear.type] ? (
-                    <img 
-                      src={bearImages[currentBear.type]} 
-                      alt={currentBear.name}
-                      className="w-4 h-4 md:w-5 md:h-5 object-contain rounded-full"
-                    />
+                    // Check if it's an emoji (short string, no URL prefix)
+                    bearImages[currentBear.type].length <= 10 && 
+                    !bearImages[currentBear.type].startsWith('data:') && 
+                    !bearImages[currentBear.type].startsWith('http') ? (
+                      <span className="text-xl" role="img" aria-label={currentBear.name}>
+                        {bearImages[currentBear.type]}
+                      </span>
+                    ) : (
+                      <img 
+                        src={bearImages[currentBear.type]} 
+                        alt={currentBear.name}
+                        className="w-4 h-4 md:w-5 md:h-5 object-contain rounded-full"
+                      />
+                    )
                   ) : (
-                    <span>🐻</span>
+                    <span className="text-xl">🐻</span>
                   )}
                   <span className="hidden md:inline">Bears</span>
                 </Button>
@@ -484,11 +493,20 @@ const Rate = () => {
               bearImage={bearImages[currentBear.type]}
             />
             {bearImages[currentBear.type] && (
-              <img 
-                src={bearImages[currentBear.type]} 
-                alt={currentBear.name}
-                className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform hover:scale-110 cursor-pointer bg-background rounded-full"
-              />
+              // Check if it's an emoji (short string, no URL prefix)
+              bearImages[currentBear.type].length <= 10 && 
+              !bearImages[currentBear.type].startsWith('data:') && 
+              !bearImages[currentBear.type].startsWith('http') ? (
+                <span className="text-5xl md:text-6xl transition-transform hover:scale-110 cursor-pointer" role="img" aria-label={currentBear.name}>
+                  {bearImages[currentBear.type]}
+                </span>
+              ) : (
+                <img 
+                  src={bearImages[currentBear.type]} 
+                  alt={currentBear.name}
+                  className="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform hover:scale-110 cursor-pointer bg-background rounded-full"
+                />
+              )
             )}
           </div>
         </div>
