@@ -85,11 +85,12 @@ const Index = () => {
 
       // Try to load from cache
       const CACHE_KEY = 'bear_images_cache';
+      const CACHE_VERSION = '2'; // Incremented to force reload with emoji support
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         try {
-          const { images } = JSON.parse(cached);
-          if (images[currentBear.type]) {
+          const { version, images } = JSON.parse(cached);
+          if (version === CACHE_VERSION && images[currentBear.type]) {
             setBearImage(images[currentBear.type]);
             return;
           }
