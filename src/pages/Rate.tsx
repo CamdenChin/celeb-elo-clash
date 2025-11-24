@@ -104,10 +104,24 @@ const Rate = () => {
       setUser(session?.user ?? null);
     });
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check for existing session and load stats
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Load user stats if authenticated
+      if (session?.user) {
+        const { data: stats } = await supabase
+          .from('user_stats')
+          .select('total_votes')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        
+        if (stats) {
+          setTotalVotes(stats.total_votes);
+        }
+      }
+      
       setLoading(false);
     });
 
@@ -201,6 +215,19 @@ const Rate = () => {
         const newBearIndex = Math.floor(newTotalVotes / 100) % bears.length;
         setTotalVotes(newTotalVotes);
         
+        // Save to database if authenticated
+        if (user) {
+          supabase
+            .from('user_stats')
+            .upsert({ 
+              user_id: user.id, 
+              total_votes: newTotalVotes 
+            })
+            .then(({ error }) => {
+              if (error) console.error('Error saving stats:', error);
+            });
+        }
+        
         // Show celebration for streak milestones
         if (newStreak % 5 === 0) {
           setShowStreakCelebration(true);
@@ -242,6 +269,19 @@ const Rate = () => {
         const previousBearIndex = Math.floor(totalVotes / 100) % bears.length;
         const newBearIndex = Math.floor(newTotalVotes / 100) % bears.length;
         setTotalVotes(newTotalVotes);
+        
+        // Save to database if authenticated
+        if (user) {
+          supabase
+            .from('user_stats')
+            .upsert({ 
+              user_id: user.id, 
+              total_votes: newTotalVotes 
+            })
+            .then(({ error }) => {
+              if (error) console.error('Error saving stats:', error);
+            });
+        }
         
         if (newStreak % 5 === 0) {
           setShowStreakCelebration(true);
