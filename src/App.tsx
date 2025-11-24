@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Rate from "./pages/Rate";
 import Leaderboard from "./pages/Leaderboard";
+import MyRankings from "./pages/MyRankings";
 import CelebrityDetail from "./pages/CelebrityDetail";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/rate" element={<Rate />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/my-rankings" element={<MyRankings />} />
           <Route path="/celebrity/:id" element={<CelebrityDetail />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/auth" element={<Auth />} />

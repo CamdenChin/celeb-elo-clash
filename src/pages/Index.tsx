@@ -32,6 +32,13 @@ const Index = () => {
               </h1>
             </div>
             <div className="flex items-center gap-3">
+              {user && (
+                <Link to="/my-rankings">
+                  <Button variant="ghost" size="sm" className="font-sans">
+                    My Favorites
+                  </Button>
+                </Link>
+              )}
               {!user && (
                 <Link to="/auth">
                   <Button size="sm" className="font-sans">
