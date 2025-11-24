@@ -87,7 +87,7 @@ const Rate = () => {
   useEffect(() => {
     const loadBearImages = async () => {
       const CACHE_KEY = 'bear_images_cache';
-      const CACHE_VERSION = '1';
+      const CACHE_VERSION = '2'; // Incremented to force reload with emoji support
       
       // Try to load from localStorage
       const cached = localStorage.getItem(CACHE_KEY);
