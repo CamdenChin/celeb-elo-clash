@@ -26,7 +26,21 @@ const Rate = () => {
   const [pairDisplayTime, setPairDisplayTime] = useState<number>(Date.now());
   const [streak, setStreak] = useState(0);
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [totalVotes, setTotalVotes] = useState(0);
   const navigate = useNavigate();
+
+  const bears = [
+    { emoji: "🐻", name: "Brown Bear" },
+    { emoji: "🐻‍❄️", name: "Polar Bear" },
+    { emoji: "🐼", name: "Panda" },
+    { emoji: "🐨", name: "Koala" },
+    { emoji: "🧸", name: "Teddy Bear" },
+    { emoji: "🎀🐻", name: "Fancy Bear" },
+  ];
+
+  const currentBearIndex = Math.floor(totalVotes / 100) % bears.length;
+  const currentBear = bears[currentBearIndex];
+  const votesUntilNextBear = 100 - (totalVotes % 100);
 
   const fetchRandomPair = async (prefetch = false) => {
     try {
@@ -150,9 +164,13 @@ const Rate = () => {
         setNextPair(null);
         setVoting(false);
         
-        // Increment streak
+        // Increment streak and total votes
         const newStreak = streak + 1;
         setStreak(newStreak);
+        const newTotalVotes = totalVotes + 1;
+        const previousBearIndex = Math.floor(totalVotes / 100) % bears.length;
+        const newBearIndex = Math.floor(newTotalVotes / 100) % bears.length;
+        setTotalVotes(newTotalVotes);
         
         // Show celebration for streak milestones
         if (newStreak % 5 === 0) {
@@ -160,12 +178,24 @@ const Rate = () => {
           setTimeout(() => setShowStreakCelebration(false), 3000);
         }
         
-        toast.success(
-          <div className="space-y-1">
-            <div>Vote recorded! {newStreak > 2 ? `🔥 ${newStreak} streak` : ''}</div>
-            <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
-          </div>
-        );
+        // Show special message when bear changes
+        if (previousBearIndex !== newBearIndex) {
+          toast.success(
+            <div className="space-y-1">
+              <div className="text-lg">🎉 New Bear Unlocked!</div>
+              <div className="text-2xl">{bears[newBearIndex].emoji} {bears[newBearIndex].name}</div>
+              <div className="text-xs opacity-80">You've made {newTotalVotes} votes!</div>
+            </div>,
+            { duration: 4000 }
+          );
+        } else {
+          toast.success(
+            <div className="space-y-1">
+              <div>Vote recorded! {newStreak > 2 ? `🔥 ${newStreak} streak` : ''}</div>
+              <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
+            </div>
+          );
+        }
         // Prefetch next pair
         fetchRandomPair(true);
       }
@@ -178,18 +208,33 @@ const Rate = () => {
       if (!nextPair) {
         const newStreak = streak + 1;
         setStreak(newStreak);
+        const newTotalVotes = totalVotes + 1;
+        const previousBearIndex = Math.floor(totalVotes / 100) % bears.length;
+        const newBearIndex = Math.floor(newTotalVotes / 100) % bears.length;
+        setTotalVotes(newTotalVotes);
         
         if (newStreak % 5 === 0) {
           setShowStreakCelebration(true);
           setTimeout(() => setShowStreakCelebration(false), 3000);
         }
         
-        toast.success(
-          <div className="space-y-1">
-            <div>Vote recorded! {newStreak > 2 ? `🔥 ${newStreak} streak` : ''}</div>
-            <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
-          </div>
-        );
+        if (previousBearIndex !== newBearIndex) {
+          toast.success(
+            <div className="space-y-1">
+              <div className="text-lg">🎉 New Bear Unlocked!</div>
+              <div className="text-2xl">{bears[newBearIndex].emoji} {bears[newBearIndex].name}</div>
+              <div className="text-xs opacity-80">You've made {newTotalVotes} votes!</div>
+            </div>,
+            { duration: 4000 }
+          );
+        } else {
+          toast.success(
+            <div className="space-y-1">
+              <div>Vote recorded! {newStreak > 2 ? `🔥 ${newStreak} streak` : ''}</div>
+              <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
+            </div>
+          );
+        }
         await fetchRandomPair();
       }
     } catch (error) {
@@ -244,6 +289,22 @@ const Rate = () => {
                   </Button>
                 </Link>
               )}
+              
+              {/* Bear Mascot */}
+              <div className="ml-2 group relative">
+                <div className="text-4xl transition-transform hover:scale-110 cursor-pointer">
+                  {currentBear.emoji}
+                </div>
+                <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-40">
+                  <div className="text-sm font-semibold mb-1">{currentBear.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {totalVotes} votes
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {votesUntilNextBear} until next bear
+                  </div>
+                </div>
+              </div>
             </div>
           </nav>
         </div>
