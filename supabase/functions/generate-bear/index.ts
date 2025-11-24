@@ -34,6 +34,9 @@ serve(async (req) => {
 
     const prompt = prompts[bearType as keyof typeof prompts] || prompts.brown;
 
+    console.log('Generating bear image for type:', bearType);
+    console.log('Using prompt:', prompt);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -52,6 +55,8 @@ serve(async (req) => {
       })
     });
 
+    console.log('Response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI gateway error:', response.status, errorText);
@@ -59,21 +64,30 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('API Response:', JSON.stringify(data, null, 2));
+    console.log('Response data structure:', JSON.stringify({
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      hasMessage: !!data.choices?.[0]?.message,
+      hasImages: !!data.choices?.[0]?.message?.images,
+      imagesLength: data.choices?.[0]?.message?.images?.length
+    }));
     
+    // Check for image in response
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!imageUrl) {
-      console.error('No image URL found in response:', JSON.stringify(data));
-      throw new Error("No image generated");
+      console.error('Full response:', JSON.stringify(data, null, 2));
+      throw new Error("No image URL in response");
     }
+
+    console.log('Successfully generated bear image');
 
     return new Response(
       JSON.stringify({ imageUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in generate-bear:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
