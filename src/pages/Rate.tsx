@@ -5,6 +5,7 @@ import { ArrowLeft, Sparkles, Heart, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SwipeableContainer } from "@/components/SwipeableContainer";
+import { StreakCelebration } from "@/components/StreakCelebration";
 import { User, Session } from "@supabase/supabase-js";
 
 export interface Celebrity {
@@ -23,6 +24,8 @@ const Rate = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [pairDisplayTime, setPairDisplayTime] = useState<number>(Date.now());
+  const [streak, setStreak] = useState(0);
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
   const navigate = useNavigate();
 
   const fetchRandomPair = async (prefetch = false) => {
@@ -146,9 +149,20 @@ const Rate = () => {
         setPairDisplayTime(Date.now());
         setNextPair(null);
         setVoting(false);
+        
+        // Increment streak
+        const newStreak = streak + 1;
+        setStreak(newStreak);
+        
+        // Show celebration for streak milestones
+        if (newStreak % 5 === 0) {
+          setShowStreakCelebration(true);
+          setTimeout(() => setShowStreakCelebration(false), 3000);
+        }
+        
         toast.success(
           <div className="space-y-1">
-            <div>Vote recorded!</div>
+            <div>Vote recorded! {newStreak > 2 ? `🔥 ${newStreak} streak` : ''}</div>
             <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
           </div>
         );
@@ -162,9 +176,17 @@ const Rate = () => {
 
       // If we didn't have a cached pair, fetch one now
       if (!nextPair) {
+        const newStreak = streak + 1;
+        setStreak(newStreak);
+        
+        if (newStreak % 5 === 0) {
+          setShowStreakCelebration(true);
+          setTimeout(() => setShowStreakCelebration(false), 3000);
+        }
+        
         toast.success(
           <div className="space-y-1">
-            <div>Vote recorded!</div>
+            <div>Vote recorded! {newStreak > 2 ? `🔥 ${newStreak} streak` : ''}</div>
             <div className="text-xs opacity-80">{clickTimeSec}s • {speedMessage}</div>
           </div>
         );
@@ -279,6 +301,8 @@ const Rate = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
           )}
+          
+          <StreakCelebration streak={streak} show={showStreakCelebration} />
         </div>
       </main>
     </div>

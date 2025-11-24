@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -24,7 +24,14 @@ const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow,
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
+  const [showPulse, setShowPulse] = useState(true);
   const startPos = useRef({ x: 0, y: 0 });
+
+  // Hide pulse after initial animation
+  useEffect(() => {
+    const timer = setTimeout(() => setShowPulse(false), 2000);
+    return () => clearTimeout(timer);
+  }, [celebrity.id]); // Reset pulse when new celebrity appears
 
   const handleDragStart = (clientX: number, clientY: number) => {
     if (disabled || isAnimating) return;
@@ -182,9 +189,11 @@ const DraggableCard = ({ celebrity, onSelect, disabled, isMobile, showLeftArrow,
         <Card
           className={`overflow-hidden border border-border/30 hover:border-primary/50 hover:shadow-elegant transition-all duration-500 ${
             isMobile ? 'rounded-2xl' : 'rounded-3xl'
-          } ${isDragging || isAnimating ? 'cursor-grabbing shadow-2xl' : 'cursor-grab'}`}
+          } ${isDragging || isAnimating ? 'cursor-grabbing shadow-2xl' : 'cursor-grab'} ${
+            showPulse ? 'animate-pulse' : ''
+          }`}
           onClick={() => {
-            if (!disabled && !isDragging && !isAnimating) {
+            if (!disabled && !isDragging && !isAnimating && !isPressing) {
               onSelect();
             }
           }}
