@@ -54,17 +54,17 @@ const Index = () => {
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-20 md:py-32">
         <div className="max-w-4xl mx-auto text-center space-y-10">
-          <div className="space-y-6">
-            <h2 className="text-5xl md:text-7xl font-serif font-light tracking-tight leading-tight">
-              Discover Beauty
+          <div className="space-y-6 animate-fade-in">
+            <h2 className="text-5xl md:text-7xl font-serif font-bold tracking-tight leading-tight">
+              Who's
               <br />
-              <span className="font-semibold text-primary italic">
-                Reimagined
+              <span className="text-primary italic animate-pulse">
+                Hotter?
               </span>
             </h2>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
-              Curate your favorites. Compare stunning portraits. Build an intelligent beauty dataset 
-              powered by your unique perspective.
+              Vote on celebrity matchups. Watch the drama unfold. 
+              See who really has the looks that kill.
             </p>
           </div>
 
@@ -72,64 +72,63 @@ const Index = () => {
             <Link to="/rate">
               <Button 
                 size="lg" 
-                className="text-base font-medium px-10 py-6 shadow-elegant hover:shadow-glow transition-all rounded-full"
+                className="text-base font-semibold px-12 py-7 shadow-glow hover:shadow-elegant transition-all rounded-full hover:scale-105 animate-fade-in"
               >
-                Begin Your Journey
+                Start Judging
               </Button>
             </Link>
             <Link to="/leaderboard">
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="text-base font-medium px-10 py-6 rounded-full border-2"
+                className="text-base font-medium px-12 py-7 rounded-full border-2 hover:scale-105 animate-fade-in"
               >
                 <Trophy className="mr-2 h-5 w-5" />
-                View Rankings
+                See The Rankings
               </Button>
             </Link>
           </div>
 
           {/* How it Works */}
           <div className="pt-20 grid md:grid-cols-3 gap-6 text-left">
-            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-card transition-shadow">
-              <div className="h-14 w-14 rounded-full bg-gradient-rose-gold flex items-center justify-center mb-5">
+            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-glow hover:-translate-y-2 transition-all duration-500 hover:border-primary/50 group animate-fade-in">
+              <div className="h-14 w-14 rounded-full bg-gradient-rose-gold flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
                 <Users className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-xl font-serif font-semibold mb-3">Compare</h3>
+              <h3 className="text-xl font-serif font-semibold mb-3">Pick Your Winner</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Elegantly choose between two portraits, guided by your aesthetic intuition.
+                Two faces. One choice. Make your vote count in this high-stakes beauty battle.
               </p>
             </div>
 
-            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-card transition-shadow">
-              <div className="h-14 w-14 rounded-full bg-gradient-primary flex items-center justify-center mb-5">
+            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-glow hover:-translate-y-2 transition-all duration-500 hover:border-primary/50 group animate-fade-in [animation-delay:150ms]">
+              <div className="h-14 w-14 rounded-full bg-gradient-primary flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
                 <Sparkles className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-xl font-serif font-semibold mb-3">Refine</h3>
+              <h3 className="text-xl font-serif font-semibold mb-3">Ratings Shift</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Watch as intelligent ratings evolve with each thoughtful selection you make.
+                Every vote changes the game. Watch as favorites rise and fall with brutal honesty.
               </p>
             </div>
 
-            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-card transition-shadow">
-              <div className="h-14 w-14 rounded-full bg-gradient-secondary flex items-center justify-center mb-5">
+            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/30 hover:shadow-glow hover:-translate-y-2 transition-all duration-500 hover:border-primary/50 group animate-fade-in [animation-delay:300ms]">
+              <div className="h-14 w-14 rounded-full bg-gradient-secondary flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
                 <Trophy className="h-7 w-7 text-foreground" />
               </div>
-              <h3 className="text-xl font-serif font-semibold mb-3">Discover</h3>
+              <h3 className="text-xl font-serif font-semibold mb-3">Crown The Hottest</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Explore curated rankings that reflect collective beauty standards.
+                Check the leaderboard to see who's winning the ultimate popularity contest.
               </p>
             </div>
           </div>
 
           {/* Disclaimer */}
           <div className="pt-12 max-w-2xl mx-auto">
-            <div className="bg-accent/30 border border-primary/20 rounded-2xl p-6 text-sm">
-              <p className="font-serif font-semibold text-foreground mb-2">A Note on Beauty</p>
+            <div className="bg-accent/30 border border-primary/20 rounded-2xl p-6 text-sm backdrop-blur-sm">
+              <p className="font-serif font-semibold text-foreground mb-2">Real Talk</p>
               <p className="text-muted-foreground leading-relaxed">
-                This experience celebrates diverse perspectives on attractiveness. 
-                Rankings reflect collective taste, not absolute truth. Created for entertainment 
-                and research—beauty remains wonderfully subjective.
+                This is pure entertainment. Beauty is subjective and these rankings are just for fun. 
+                We're building a dataset for AI research. Vote with your gut, not your heart.
               </p>
             </div>
           </div>
