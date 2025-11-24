@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Sparkles, Trophy, LogOut } from "lucide-react";
+import { ArrowLeft, Sparkles, Heart, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -160,6 +160,14 @@ const Rate = () => {
               </h1>
             </div>
             <div className="flex items-center gap-2">
+              {user && (
+                <Link to="/my-rankings">
+                  <Button variant="ghost" size="sm">
+                    <Heart className="h-4 w-4 mr-2" />
+                    My Favorites
+                  </Button>
+                </Link>
+              )}
               {user ? (
                 <Button variant="ghost" size="sm" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4" />
