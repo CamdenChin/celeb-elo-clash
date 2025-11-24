@@ -44,6 +44,7 @@ const Index = () => {
       setUser(session?.user ?? null);
 
       // Load user votes
+      let votes = 0;
       if (session?.user) {
         const { data: stats } = await supabase
           .from('user_stats')
@@ -52,33 +53,23 @@ const Index = () => {
           .maybeSingle();
         
         if (stats) {
-          setUserVotes(stats.total_votes);
+          votes = stats.total_votes;
         }
       } else {
         const savedVotes = localStorage.getItem('userVotes');
         if (savedVotes) {
-          setUserVotes(parseInt(savedVotes));
+          votes = parseInt(savedVotes);
         }
       }
-    };
+      
+      setUserVotes(votes);
 
-    initUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Load bear image based on votes
-  useEffect(() => {
-    const loadBearImage = async () => {
+      // Load bear image based on votes
       const bearThresholds = getBearThresholds();
       let currentBearIndex = 0;
 
       for (let i = 0; i < bearThresholds.length; i++) {
-        if (userVotes >= bearThresholds[i]) {
+        if (votes >= bearThresholds[i]) {
           currentBearIndex = i + 1;
         } else {
           break;
@@ -122,8 +113,14 @@ const Index = () => {
       }
     };
 
-    loadBearImage();
-  }, [userVotes]);
+    initUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
